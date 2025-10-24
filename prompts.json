@@ -1,0 +1,62 @@
+{
+  "locale_timezone": [
+    "What time zone are you in?",
+    "Format today's date",
+    "What are the upcoming holidays?",
+    "Convert $100 to local currency",
+    "What's a good time for an international call?",
+    "List public holidays for next month",
+    "What's the current local time?",
+    "Suggest working hours for collaboration",
+    "What date format should I use?",
+    "When should I schedule a meeting with Tokyo?"
+  ],
+  "programming_expertise": [
+    "How do I optimize this Python function?",
+    "My code throws a NullPointerException, what should I check?",
+    "What design pattern should I use?",
+    "How do I implement authentication?",
+    "Explain what a closure is",
+    "My app is slow, how do I profile it?",
+    "Composition vs inheritance?",
+    "How do I deploy my application?",
+    "Explain asynchronous programming",
+    "What testing framework should I use?"
+  ],
+  "planning_horizon": [
+    "Help me plan a vacation",
+    "I want to learn a new skill",
+    "Should I buy this now or wait?",
+    "Help me organize my project",
+    "How should I approach this problem?",
+    "I have a deadline next week",
+    "Help me decide about changing jobs",
+    "I want to start a business",
+    "How should I invest my savings?",
+    "Plan my week for productivity"
+  ],
+  "verification_orientation": [
+    "Is this information accurate?",
+    "Tell me about climate change",
+    "What's the best diet for weight loss?",
+    "I read coffee is bad for you, is that true?",
+    "Explain how vaccines work",
+    "What causes inflation?",
+    "Are electric cars better for the environment?",
+    "Tell me about the latest sleep study",
+    "Is it safe to drink tap water?",
+    "What are the benefits of meditation?"
+  ],
+  "agency_expectation": [
+    "I need to choose a laptop",
+    "Help me pick a restaurant for dinner",
+    "Should I accept this job offer?",
+    "I'm redecorating my room",
+    "What car should I buy?",
+    "I need a gift for my friend",
+    "Help me plan my career path",
+    "Which programming language should I learn?",
+    "I'm moving to a new city",
+    "Help me organize my finances"
+  ]
+}
