@@ -24,7 +24,7 @@ pip install -r requirements.txt
 ### 1. Add entries to personas.csv
 
 ```python
-from dataset_prep import DatasetPrep
+from datagen.dataset_prep import DatasetPrep
 
 prep = DatasetPrep()
 
@@ -46,16 +46,16 @@ prep.add_persona(
 ### 2. View current entries
 
 ```bash
-python dataset_prep.py
+python datagen/dataset_prep.py
 ```
 
 ### 3. Generate final dataset
 
 ```bash
-python dataset_prep.py generate
+python datagen/dataset_prep.py generate
 ```
 
-This creates `final_dataset.json` with entries like:
+This creates `datagen/final_dataset.json` with entries like:
 
 ```json
 {
@@ -91,8 +91,8 @@ This creates `final_dataset.json` with entries like:
    - Use an LLM to generate a target persona with that dimension value
    - Use an LLM to generate distractor personas with different dimension values
    - Include filler attributes (age, sex, job, hobbies) that don't affect answers
-3. Add each entry to `personas.csv` using `add_persona()`
-4. Run `python dataset_prep.py generate` to create the final dataset
+3. Add each entry to `datagen/data_with_personas.csv` using `add_persona()`
+4. Run `python datagen/dataset_prep.py generate` to create the final dataset
 5. Use the dataset to generate responses and evaluate perceivability
 
 ## Notes

@@ -5,6 +5,7 @@ Dataset Preparation Pipeline for PersonaSignal
 import pandas as pd
 import json
 import ast
+import re
 from pathlib import Path
 from typing import List
 
@@ -40,38 +41,46 @@ class DatasetPrep:
         self.personas_df.to_csv(self.personas_file, index=False)
 
     def _parse_array_string(self, s):
-        """Parse string representation of array to actual list"""
+        """Parse string representation of array to actual list (handles both Python and NumPy formats)"""
         if pd.isna(s):
             return []
         if isinstance(s, list):
             return s
 
-        # Try to parse as Python literal
+        if not isinstance(s, str):
+            return [str(s)]
+
+        s = s.strip()
+
+        # Check if it looks like NumPy array format (space-separated quoted strings)
+        # NumPy format: ['item1' 'item2'] - no commas between items
+        # Python format: ['item1', 'item2'] - has commas
+        if s.startswith("[") and s.endswith("]"):
+            inner = s[1:-1]
+            # Check if it's NumPy format (has quotes but few/no commas)
+            # Count quotes and commas to detect format
+            single_quotes = inner.count("'")
+            commas = inner.count(",")
+
+            # If we have multiple quoted strings but few commas, it's likely NumPy format
+            if single_quotes >= 4 and commas < (single_quotes / 4):
+                # NumPy format detected - parse quoted strings
+                matches = re.findall(r"'([^']*)'", inner)
+                if not matches:
+                    matches = re.findall(r'"([^"]*)"', inner)
+                if matches:
+                    return matches
+
+        # Try to parse as Python literal (comma-separated)
         try:
             result = ast.literal_eval(s)
             if isinstance(result, list):
                 return result
-        except:
+        except (ValueError, SyntaxError):
             pass
 
-        # If it's a string with newlines, split by newlines
-        if isinstance(s, str):
-            # Remove brackets and quotes if present
-            s = s.strip()
-            if s.startswith("[") and s.endswith("]"):
-                s = s[1:-1]
-
-            # Split by newlines and clean up
-            items = [
-                item.strip().strip("'\"") for item in s.split("\n") if item.strip()
-            ]
-            if len(items) > 1:
-                return items
-
-            # Otherwise return as single item
-            return [s] if s else []
-
-        return [str(s)]
+        # Fallback: return as single item
+        return [s] if s else []
 
     def add_persona(
         self,
@@ -126,13 +135,17 @@ class DatasetPrep:
         """Get all persona entries for a specific dimension"""
         return self.personas_df[self.personas_df["dimension_name"] == dimension_name]
 
-    def create_dataset(self, output_file: str = "final_dataset.json"):
+    def create_dataset(self, output_file: str = None):
         """
         Create dataset from personas with their associated prompts
 
         Args:
-            output_file: Output JSON file
+            output_file: Output JSON file (defaults to final_dataset.json in same directory as script)
         """
+        if output_file is None:
+            script_dir = Path(__file__).parent
+            output_file = str(script_dir / "final_dataset.json")
+
         dataset = []
 
         for idx, row in self.personas_df.iterrows():
