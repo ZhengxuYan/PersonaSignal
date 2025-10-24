@@ -1,1 +1,1 @@
-dimension,possible_dimension_values,dimension_value,target_persona,distractor_personas
+dimension,dimension_value,prompt,target_persona,distractor_personas,possible_dimension_values

@@ -10,32 +10,30 @@ pip install -r requirements.txt
 
 ## Structure
 
-The dataset consists of two parts:
+**personas.csv**: Each row contains a complete entry with dimension, prompt, and personas
 
-1. **personas.csv**: Each row contains a dimension-value pair with full persona descriptions
-
-   - `dimension`: The dimension name (e.g., "locale_timezone")
-   - `possible_dimension_values`: All possible values for this dimension (pipe-separated)
-   - `dimension_value`: The value for this entry (e.g., "US Pacific")
-   - `target_persona`: Full persona description with this dimension value
-   - `distractor_personas`: List of distractor personas with different dimension values (pipe-separated)
-
-2. **prompts.json**: Questions organized by dimension
+- `dimension`: The dimension name (e.g., "locale_timezone")
+- `dimension_value`: The value for this entry (e.g., "US Pacific")
+- `prompt`: The question for this entry
+- `target_persona`: Full persona description with this dimension value
+- `distractor_personas`: List of distractor personas with different dimension values (pipe-separated)
+- `possible_dimension_values`: All possible values for this dimension (pipe-separated)
 
 ## Usage
 
-### 1. Generate and add personas to personas.csv
+### 1. Add entries to personas.csv
 
 ```python
 from dataset_prep import DatasetPrep
 
 prep = DatasetPrep()
 
-# Add a persona entry
+# Add a complete entry with dimension, prompt, and personas
 prep.add_persona(
     dimension="locale_timezone",
     possible_dimension_values=["US Pacific", "US Eastern", "UK", "EU Central", "India", "China Mainland", "Japan", "Brazil", "Australia"],
     dimension_value="US Pacific",
+    prompt="What time zone are you in?",
     target_persona="Sarah is a 32-year-old software engineer living in San Francisco. She works in tech and enjoys hiking on weekends.",
     distractor_personas=[
         "James is a 28-year-old teacher in London. He enjoys reading and theater.",
@@ -45,16 +43,16 @@ prep.add_persona(
 )
 ```
 
-### 2. View current personas
+### 2. View current entries
 
 ```bash
 python dataset_prep.py
 ```
 
-### 3. Generate dataset by pairing personas with prompts
+### 3. Generate final dataset
 
 ```bash
-python dataset_prep.py generate prompts.json
+python dataset_prep.py generate
 ```
 
 This creates `final_dataset.json` with entries like:
@@ -63,6 +61,14 @@ This creates `final_dataset.json` with entries like:
 {
   "question_id": "locale_timezone_q1",
   "dimension": "locale_timezone",
+  "dimension_value": "US Pacific",
+  "question": "What time zone are you in?",
+  "target_persona": "Sarah is a 32-year-old...",
+  "distractor_personas": [
+    "James is a 28-year-old...",
+    "Yuki is a 35-year-old...",
+    "Raj is a 40-year-old..."
+  ],
   "possible_dimension_values": [
     "US Pacific",
     "US Eastern",
@@ -73,14 +79,6 @@ This creates `final_dataset.json` with entries like:
     "Japan",
     "Brazil",
     "Australia"
-  ],
-  "dimension_value": "US Pacific",
-  "question": "What time zone are you in?",
-  "target_persona": "Sarah is a 32-year-old...",
-  "distractor_personas": [
-    "James is a 28-year-old...",
-    "Yuki is a 35-year-old...",
-    "Raj is a 40-year-old..."
   ]
 }
 ```
@@ -88,12 +86,13 @@ This creates `final_dataset.json` with entries like:
 ## Workflow
 
 1. For each dimension, identify the possible values
-2. For each dimension-value pair, use an LLM to generate:
-   - A target persona with that dimension value
-   - 3 distractor personas with different dimension values
+2. For each question you want to ask:
+   - Choose a dimension value for the question
+   - Use an LLM to generate a target persona with that dimension value
+   - Use an LLM to generate distractor personas with different dimension values
    - Include filler attributes (age, sex, job, hobbies) that don't affect answers
-3. Add personas to `personas.csv` using `add_persona()`
-4. Run `python dataset_prep.py generate prompts.json` to create the final dataset
+3. Add each entry to `personas.csv` using `add_persona()`
+4. Run `python dataset_prep.py generate` to create the final dataset
 5. Use the dataset to generate responses and evaluate perceivability
 
 ## Notes

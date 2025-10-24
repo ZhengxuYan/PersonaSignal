@@ -22,10 +22,11 @@ class DatasetPrep:
             return pd.DataFrame(
                 columns=[
                     "dimension",
-                    "possible_dimension_values",
                     "dimension_value",
+                    "prompt",
                     "target_persona",
                     "distractor_personas",
+                    "possible_dimension_values",
                 ]
             )
 
@@ -38,6 +39,7 @@ class DatasetPrep:
         dimension: str,
         possible_dimension_values: List[str],
         dimension_value: str,
+        prompt: str,
         target_persona: str,
         distractor_personas: List[str],
     ):
@@ -48,6 +50,7 @@ class DatasetPrep:
             dimension: The dimension name (e.g., "locale_timezone")
             possible_dimension_values: List of all possible values for this dimension
             dimension_value: The value for this dimension (e.g., "US Pacific")
+            prompt: The question for this entry
             target_persona: Full persona description with this dimension value
             distractor_personas: List of distractor personas with different dimension values
         """
@@ -62,10 +65,11 @@ class DatasetPrep:
             [
                 {
                     "dimension": dimension,
-                    "possible_dimension_values": values_str,
                     "dimension_value": dimension_value,
+                    "prompt": prompt,
                     "target_persona": target_persona,
                     "distractor_personas": distractors_str,
+                    "possible_dimension_values": values_str,
                 }
             ]
         )
@@ -78,52 +82,28 @@ class DatasetPrep:
         """Get all persona entries for a specific dimension"""
         return self.personas_df[self.personas_df["dimension"] == dimension]
 
-    def create_dataset_from_prompts(
-        self, prompts_file: str, output_file: str = "final_dataset.json"
-    ):
+    def create_dataset(self, output_file: str = "final_dataset.json"):
         """
-        Create dataset by pairing personas with prompts
+        Create dataset from personas with their associated prompts
 
         Args:
-            prompts_file: JSON file with prompts per dimension
             output_file: Output JSON file
-
-        Expected prompts_file format:
-        {
-          "dimension_name": ["prompt1", "prompt2", ...],
-          ...
-        }
         """
-        with open(prompts_file, "r") as f:
-            prompts = json.load(f)
-
         dataset = []
 
-        for dimension, dimension_prompts in prompts.items():
-            dimension_personas = self.get_all_personas_for_dimension(dimension)
-
-            if dimension_personas.empty:
-                print(f"Warning: No personas found for dimension '{dimension}'")
-                continue
-
-            for i, prompt in enumerate(dimension_prompts, 1):
-                # Randomly select a persona entry for this question
-                persona_row = dimension_personas.sample(n=1).iloc[0]
-
-                entry = {
-                    "question_id": f"{dimension}_q{i}",
-                    "dimension": dimension,
-                    "possible_dimension_values": persona_row[
-                        "possible_dimension_values"
-                    ].split("|"),
-                    "dimension_value": persona_row["dimension_value"],
-                    "question": prompt,
-                    "target_persona": persona_row["target_persona"],
-                    "distractor_personas": persona_row["distractor_personas"].split(
-                        "|"
-                    ),
-                }
-                dataset.append(entry)
+        for idx, row in self.personas_df.iterrows():
+            entry = {
+                "question_id": f"{row['dimension']}_q{idx+1}",
+                "dimension": row["dimension"],
+                "dimension_value": row["dimension_value"],
+                "question": row["prompt"],
+                "target_persona": row["target_persona"],
+                "distractor_personas": row["distractor_personas"].split("|"),
+                "possible_dimension_values": row["possible_dimension_values"].split(
+                    "|"
+                ),
+            }
+            dataset.append(entry)
 
         with open(output_file, "w") as f:
             json.dump(dataset, f, indent=2)
@@ -163,12 +143,7 @@ def main():
     prep = DatasetPrep()
 
     if len(sys.argv) > 1 and sys.argv[1] == "generate":
-        if len(sys.argv) < 3:
-            print("Usage: python dataset_prep.py generate <prompts.json>")
-            sys.exit(1)
-
-        prompts_file = sys.argv[2]
-        prep.create_dataset_from_prompts(prompts_file)
+        prep.create_dataset()
     else:
         prep.list_personas()
 
