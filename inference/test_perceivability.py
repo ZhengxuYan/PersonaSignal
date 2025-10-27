@@ -1,11 +1,17 @@
-import ast
-from enum import Enum
-from typing import Dict, List
+import sys
+from pathlib import Path
+from typing import Dict
 
-import pandas as pd
 from bespokelabs import curator
-from datasets import Dataset, load_dataset
+from datasets import load_dataset
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+
+# Add parent directory to path to import config
+sys.path.insert(0, str(Path(__file__).parent.parent))
+import config
+
+load_dotenv()
 
 # TODO: Prompt Template
 TEST_PERCEIVABILITY_PROMPT_TEMPLATE = """
@@ -25,53 +31,68 @@ Return your final answer as a JSON object with the following fields:
 
 
 class PerceivabilityTestResult(BaseModel):
-  choice: str = Field(
-      description="The choice of the persona based on the response. Must be one of: A, B, C, D, E, F."
-  )
-  rationale: str = Field(
-      description="The rationale for the choice"
-  )
-  # leakage_detection: bool = Field(
-  #     description="Whether the response leaks the persona information of the user and there the judge is able to infer the persona easily"
-  # )
+    choice: str = Field(
+        description="The choice of the persona based on the response. Must be one of: A, B, C, D, E, F."
+    )
+    rationale: str = Field(description="The rationale for the choice")
+    # leakage_detection: bool = Field(
+    #     description="Whether the response leaks the persona information of the user and there the judge is able to infer the persona easily"
+    # )
 
 
 class PerceivabilityTestGenerator(curator.LLM):
-  response_format = PerceivabilityTestResult
+    response_format = PerceivabilityTestResult
 
-  def prompt(self, input: dict) -> str:
-    ground_truth_persona = input["ground_truth_persona"]
-    distractor_personas = input["distractor_personas"]
-    # print(distractor_personas)
-    personas = "\n".join([f"{letter}: {persona}" for letter, persona in zip(
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ", distractor_personas + [ground_truth_persona])])
-    # print(personas)
-    # raise Exception("Stop here")
-    return TEST_PERCEIVABILITY_PROMPT_TEMPLATE.format(
-        num_personas=input["num_distractors"] + 1,
-        response=input["personalized_response"],
-        personas=personas
+    def prompt(self, input: dict) -> str:
+        ground_truth_persona = input["ground_truth_persona"]
+        distractor_personas = input["distractor_personas"]
+        # print(distractor_personas)
+        personas = "\n".join(
+            [
+                f"{letter}: {persona}"
+                for letter, persona in zip(
+                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                    distractor_personas + [ground_truth_persona],
+                )
+            ]
+        )
+        # print(personas)
+        # raise Exception("Stop here")
+        return TEST_PERCEIVABILITY_PROMPT_TEMPLATE.format(
+            num_personas=input["num_distractors"] + 1,
+            response=input["personalized_response"],
+            personas=personas,
+        )
+
+    def parse(self, input: dict, response: PerceivabilityTestResult) -> Dict:
+        choice = response.choice
+        assert choice in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        reward = 1 if choice == "F" else 0
+        return {
+            **input,
+            "judge_choice": response.choice,
+            "judge_rationale": response.rationale,
+            # "persona_leaked": response.leakage_detection,
+            "reward": reward,
+        }
+
+
+if __name__ == "__main__":
+    print(f"Testing perceivability for dimension: {config.DIMENSION_NAME}")
+
+    # Load dataset from previous step
+    input_dataset_name = config.get_dataset_name("responses")
+    print(f"Loading dataset from: {input_dataset_name}")
+    dataset = load_dataset(input_dataset_name, split="train")
+
+    # Run perceivability test
+    print(f"Running perceivability test using {config.JUDGE_MODEL}...")
+    perceivability_test_generator = PerceivabilityTestGenerator(
+        model_name=config.JUDGE_MODEL
     )
+    dataset_with_perceivability_test = perceivability_test_generator(dataset)
 
-  def parse(self, input: dict, response: PerceivabilityTestResult) -> Dict:
-    choice = response.choice
-    assert choice in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    reward = 1 if choice == "F" else 0
-    return {
-        **input,
-        "judge_choice": response.choice,
-        "judge_rationale": response.rationale,
-        # "persona_leaked": response.leakage_detection,
-        "reward": reward,
-    }
-
-
-MODEL_NAME = "gpt-4o-mini"
-dataset = load_dataset(
-    "RZ412/PersonaSignal-PersonalizedResponse", split="train")
-perceivability_test_generator = PerceivabilityTestGenerator(
-    model_name=MODEL_NAME)
-dataset_with_perceivability_test = perceivability_test_generator(dataset)
-
-dataset_with_perceivability_test.dataset.push_to_hub(
-    "RZ412/PersonaSignal-PersonalizedResponseWithPerceivabilityTest")
+    # Push to HuggingFace Hub
+    output_dataset_name = config.get_dataset_name("perceivability")
+    print(f"Pushing dataset to: {output_dataset_name}")
+    dataset_with_perceivability_test.dataset.push_to_hub(output_dataset_name)
