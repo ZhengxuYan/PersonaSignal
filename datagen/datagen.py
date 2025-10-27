@@ -108,13 +108,15 @@ if __name__ == "__main__":
       dataset_with_values, model_name, num_distractors)
   print(f"Generated personas for {len(dataset_with_personas)} questions.")
 
-  # Now save to CSV (easy one-liner)
-  dataset_with_personas.to_pandas().to_csv(
-      "data_with_personas.csv", index=False)
+dataset_with_personas.push_to_hub(
+    "RZ412/PersonaSignal-PersonaQuestions")
+# # Now save to CSV (easy one-liner)
+# dataset_with_personas.to_pandas().to_csv(
+#     "data_with_personas.csv", index=False)
 
-  print("\nFirst few rows:")
-  df = dataset_with_personas.to_pandas()
-  print(df[['question', 'dimension_name',
-        'sampled_value', 'ground_truth_persona']].head())
-  print(f"\nFull dataset saved to data_with_personas.csv")
-  print(f"Columns: {list(df.columns)}")
+# print("\nFirst few rows:")
+# df = dataset_with_personas.to_pandas()
+# print(df[['question', 'dimension_name',
+#       'sampled_value', 'ground_truth_persona']].head())
+# print(f"\nFull dataset saved to data_with_personas.csv")
+# print(f"Columns: {list(df.columns)}")
