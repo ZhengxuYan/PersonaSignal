@@ -12,14 +12,14 @@ from datasets import load_dataset as load_dataset_hf
 # Set publication-quality plot style
 plt.rcParams.update(
     {
-        "font.size": 11,
+        "font.size": 14,
         "font.family": "sans-serif",
         "font.sans-serif": ["Arial", "DejaVu Sans"],
-        "axes.labelsize": 12,
-        "axes.titlesize": 14,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "legend.fontsize": 10,
+        "axes.labelsize": 16,
+        "axes.titlesize": 18,
+        "xtick.labelsize": 13,
+        "ytick.labelsize": 13,
+        "legend.fontsize": 13,
         "figure.dpi": 300,
         "savefig.dpi": 300,
         "savefig.bbox": "tight",
@@ -98,6 +98,7 @@ def plot_accuracy(df: pd.DataFrame, output_filename: str = "accuracy.png"):
     bars = ax.bar(
         range(len(categories)),
         accuracies,
+        width=0.6,  # Make bars narrower
         color=colors,
         edgecolor="black",
         linewidth=1.2,
@@ -114,13 +115,13 @@ def plot_accuracy(df: pd.DataFrame, output_filename: str = "accuracy.png"):
             f"{acc:.1f}%",
             ha="center",
             va="bottom",
-            fontsize=10,
+            fontsize=13,
             fontweight="bold",
         )
 
     # Styling
-    ax.set_ylabel("Accuracy (%)", fontsize=13, fontweight="bold", labelpad=10)
-    ax.set_xlabel("Dimension", fontsize=13, fontweight="bold", labelpad=10)
+    ax.set_ylabel("Accuracy (%)", fontsize=16, fontweight="bold", labelpad=10)
+    ax.set_xlabel("Dimension", fontsize=16, fontweight="bold", labelpad=10)
 
     # Build title with model information
     title = "Perceivability Test: Judge Accuracy by Dimension"
@@ -137,12 +138,12 @@ def plot_accuracy(df: pd.DataFrame, output_filename: str = "accuracy.png"):
                 subtitle,
                 transform=ax.transAxes,
                 ha="center",
-                fontsize=10,
+                fontsize=13,
                 style="italic",
                 color="#555555",
             )
 
-    ax.set_title(title, fontsize=15, fontweight="bold", pad=30)
+    ax.set_title(title, fontsize=18, fontweight="bold", pad=30)
 
     # Set y-axis limits with some padding
     ax.set_ylim(0, 105)
