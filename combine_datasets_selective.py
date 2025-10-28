@@ -237,12 +237,13 @@ def main():
 
     for stage, dataset in combined_datasets.items():
         # Add model suffix to output name
+        # For perceivability, use response model since we compare different response models
         if stage == "questions":
             model_suffix = config.QUESTION_GEN_MODEL
         elif stage == "responses":
             model_suffix = config.RESPONSE_GEN_MODEL
         else:  # perceivability
-            model_suffix = config.JUDGE_MODEL
+            model_suffix = config.RESPONSE_GEN_MODEL
 
         output_name = f"{config.HF_USERNAME}/PersonaSignal-{suffix}-{stage.title()}-{model_suffix}"
         print(f"Pushing: {output_name}")
