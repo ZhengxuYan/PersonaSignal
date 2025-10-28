@@ -34,7 +34,10 @@ import config
 
 
 def load_perceivability_data(
-    dataset_name: str = None, response_model: str = None, judge_model: str = None
+    dataset_name: str = None,
+    response_model: str = None,
+    judge_model: str = None,
+    hf_username: str = None,
 ):
     """
     Load perceivability dataset.
@@ -43,13 +46,15 @@ def load_perceivability_data(
         dataset_name: Full dataset name. If None, constructs from config.
         response_model: Response model to analyze. If None, uses config default.
         judge_model: Judge model that was used. If None, uses config default.
+        hf_username: HuggingFace username/account. If None, uses config default.
     """
     if dataset_name is None:
         # Use the default combined dataset name with response model suffix
         response_model = response_model or config.RESPONSE_GEN_MODEL
         judge_model = judge_model or config.JUDGE_MODEL
+        hf_username = hf_username or config.HF_USERNAME
         dataset_name = (
-            f"{config.HF_USERNAME}/PersonaSignal-All-Perceivability-{response_model}"
+            f"{hf_username}/PersonaSignal-All-Perceivability-{response_model}"
         )
 
     print(f"Loading: {dataset_name}")
@@ -204,16 +209,26 @@ def print_stats(overall_acc, dim_acc, df=None):
                 print(f"  {model}: {acc:.1f}% ({count} rows)")
 
 
-def compare_response_models(response_models: list[str], judge_model: str = None):
+def compare_response_models(
+    response_models: list[str],
+    judge_model: str = None,
+    model_hf_accounts: dict[str, str] = None,
+):
     """
     Compare multiple response models side by side.
 
     Args:
         response_models: List of response model names to compare
         judge_model: Judge model to use (default: config.JUDGE_MODEL)
+        model_hf_accounts: Dict mapping response model names to HF usernames.
+                          Example: {"gpt-4o": "JasonYan777", "claude-3": "other_username"}
+                          If None or model not in dict, uses config.HF_USERNAME
     """
     if judge_model is None:
         judge_model = config.JUDGE_MODEL
+
+    if model_hf_accounts is None:
+        model_hf_accounts = {}
 
     print(f"\n{'='*60}")
     print(f"Comparing Response Models (Judge: {judge_model})")
@@ -224,8 +239,11 @@ def compare_response_models(response_models: list[str], judge_model: str = None)
 
     for response_model in response_models:
         print(f"\n--- Loading dataset for {response_model} ---")
+
+        # Get HF username for this model
+        hf_username = model_hf_accounts.get(response_model, config.HF_USERNAME)
         dataset_name = (
-            f"{config.HF_USERNAME}/PersonaSignal-All-Perceivability-{response_model}"
+            f"{hf_username}/PersonaSignal-All-Perceivability-{response_model}"
         )
 
         try:
@@ -233,6 +251,7 @@ def compare_response_models(response_models: list[str], judge_model: str = None)
                 dataset_name=dataset_name,
                 response_model=response_model,
                 judge_model=judge_model,
+                hf_username=hf_username,
             )
 
             model_safe = response_model.replace("-", "_").replace(".", "_")
@@ -270,23 +289,28 @@ def main():
     # Option 1: Analyze single response model (uses config defaults)
     response_model = config.RESPONSE_GEN_MODEL
     judge_model = config.JUDGE_MODEL
+    hf_username = config.HF_USERNAME  # Or specify different account
 
-    # Option 2: Compare multiple response models
+    # Option 2: Compare multiple response models from different HF accounts
     # Uncomment the following to compare different response models:
     # compare_models = ["gpt-4o-mini", "gpt-4o", "claude-3-5-sonnet"]
-    # compare_response_models(compare_models, judge_model=judge_model)
+    # model_accounts = {
+    #     "gpt-4o-mini": "JasonYan777",
+    #     "gpt-4o": "JasonYan777",
+    #     "claude-3-5-sonnet": "OtherAccount",  # Different account for this model
+    # }
+    # compare_response_models(compare_models, judge_model=judge_model, model_hf_accounts=model_accounts)
     # return
 
     # =====================================
 
     # Load and analyze single model
-    dataset_name = (
-        f"{config.HF_USERNAME}/PersonaSignal-All-Perceivability-{response_model}"
-    )
+    dataset_name = f"{hf_username}/PersonaSignal-All-Perceivability-{response_model}"
     df = load_perceivability_data(
         dataset_name=dataset_name,
         response_model=response_model,
         judge_model=judge_model,
+        hf_username=hf_username,
     )
 
     overall, dims = plot_accuracy(df)
