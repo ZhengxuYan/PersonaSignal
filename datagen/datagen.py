@@ -321,14 +321,23 @@ def generate_personas(
 
 
 if __name__ == "__main__":
-    # Load dimension and configuration from config.py
-    dimension = [config.get_dimension()]
-    model_name = config.QUESTION_GEN_MODEL
-    seed = config.SEED
-    num_questions = config.NUM_QUESTIONS
-    num_distractors = config.NUM_DISTRACTORS
+    # Get current dimension - this should be set externally
+    from config import (
+        DIMENSION_NAME,
+        QUESTION_GEN_MODEL,
+        SEED,
+        NUM_QUESTIONS,
+        NUM_DISTRACTORS,
+    )
 
-    print(f"Running data generation for dimension: {config.DIMENSION_NAME}")
+    # Load dimension and configuration
+    dimension = [config.get_dimension()]
+    model_name = QUESTION_GEN_MODEL
+    seed = SEED
+    num_questions = NUM_QUESTIONS
+    num_distractors = NUM_DISTRACTORS
+
+    print(f"Running data generation for dimension: {DIMENSION_NAME}")
     print(f"Dimension values: {dimension[0]['values']}")
 
     # Step 1: Generate questions → HF Dataset
@@ -351,7 +360,7 @@ if __name__ == "__main__":
     print(f"Generated personas for {len(dataset_with_personas)} questions.")
 
     # Push to HuggingFace Hub
-    dataset_name = config.get_dataset_name("questions")
+    dataset_name = config.get_dataset_name_with_model("questions", model_name)
     print(f"\nPushing dataset to: {dataset_name}")
     dataset_with_personas.push_to_hub(dataset_name)
 # # Now save to CSV (easy one-liner)

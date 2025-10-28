@@ -1,116 +1,183 @@
 # PersonaSignal
 
-Dataset preparation pipeline for studying personalization through third-party perceivability.
+Pipeline for generating and evaluating personalization datasets with third-party perceivability testing.
 
-## Setup
+## Overview
+
+PersonaSignal generates personalized responses conditioned on hidden personas and evaluates whether a separate judge model can detect which persona was used based only on the response text.
+
+## Quick Start
+
+### 1. Setup
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Structure
+Create a `.env` file in the project root:
 
-**datagen/data_with_personas.csv**: Each row contains a complete entry with dimension, question, and personas
+```bash
+OPENAI_API_KEY=your-key-here
+HUGGINGFACE_TOKEN=your-token-here
+```
 
-- `dimension_name`: The dimension name (e.g., "locale_and_time_zone")
-- `dimension_values`: List of all possible values for this dimension (NumPy array format)
-- `dimension_description`: Description of what this dimension controls
-- `question`: The question/prompt for this entry
-- `why_differ`: Explanation of why responses differ across dimension values
-- `how_subtle`: Explanation of how personalization cues appear subtly
-- `sampled_value`: The specific dimension value for this entry (e.g., "US Pacific")
-- `num_distractors`: Number of distractor personas
-- `ground_truth_persona`: The target persona description with the sampled dimension value
-- `distractor_personas`: List of distractor personas with different dimension values (NumPy array format)
+### 2. Configure
 
-## Usage
-
-### 1. Add entries to data_with_personas.csv
+Edit `config.py` to select a dimension:
 
 ```python
-from datagen.dataset_prep import DatasetPrep
-
-prep = DatasetPrep()
-
-# Add a complete entry with dimension, question, and personas
-prep.add_persona(
-    dimension_name="locale_and_time_zone",
-    dimension_values=["US Pacific", "US Eastern", "UK", "EU Central", "India", "China Mainland", "Japan", "Brazil", "Australia"],
-    dimension_description="Controls the user's geographic location, timezone, date/time formatting preferences, and cultural conventions.",
-    question="Could you suggest two time slots for a weekly meeting?",
-    why_differ="Different locales will bias toward morning or late-day local options and reflect local time notation.",
-    how_subtle="Cues show up as which hours are proposed and use of 12-hour vs 24-hour and day-first vs month-first dates.",
-    sampled_value="US Pacific",
-    num_distractors=5,
-    ground_truth_persona="A project coordinator based in San Francisco who plans meetings during standard PST office hours. Uses 12-hour clock and MM/DD date format.",
-    distractor_personas=[
-        "A project coordinator in New York using EST, 12-hour clock, and MM/DD dates.",
-        "A coordinator in London using GMT/BST, 24-hour clock, and DD/MM dates.",
-        "A coordinator in Berlin using CET, 24-hour clock, and DD.MM dates.",
-        "A coordinator in Mumbai using IST, 24-hour clock, and DD-MM dates.",
-        "A coordinator in Tokyo using JST, 24-hour clock, and YYYY/MM/DD dates."
-    ]
-)
+DIMENSION_NAME = "programming_expertise"  # Change this to switch dimensions
 ```
 
-### 2. View current entries
+Available dimensions:
+
+- `programming_expertise` - Novice, Intermediate, Advanced
+- `planning_horizon` - Spontaneous, Balanced, Strategic
+- `locale_and_time_zone` - Geographic and cultural contexts
+- `verification_orientation` - Trusting, Skeptical, Empirical
+- `agency_expectation` - High-Agency, Shared-Agency, Low-Agency
+
+### 3. Run Pipeline
 
 ```bash
-python datagen/dataset_prep.py
+# Step 1: Generate questions and personas
+python datagen/datagen.py
+
+# Step 2: Generate personalized responses
+python inference/collect_response.py
+
+# Step 3: Test perceivability with judge
+python inference/test_perceivability.py
+
+# Step 4: Analyze results
+python analyze_perceivability.py
 ```
 
-### 3. Generate final dataset
+## Architecture
 
-```bash
-python datagen/dataset_prep.py generate
+The pipeline consists of 4 stages:
+
+### Stage 1: Question & Persona Generation (`datagen/datagen.py`)
+
+- Generates questions for a dimension that should elicit different responses
+- Samples one value from the dimension for each question
+- Creates 1 ground truth persona with sampled value + N distractor personas with different values
+
+**Output**: `{USERNAME}/PersonaSignal-PersonaQuestions-{Dimension}`
+
+### Stage 2: Personalized Response Generation (`inference/collect_response.py`)
+
+- Takes the questions and personas
+- Generates personalized responses using the ground truth persona
+- Instructs the model to NOT explicitly mention persona traits
+
+**Output**: `{USERNAME}/PersonaSignal-PersonalizedResponse-{Dimension}`
+
+### Stage 3: Perceivability Testing (`inference/test_perceivability.py`)
+
+- Presents the response and all personas (ground truth + distractors)
+- Judge model must identify which persona was used
+- Calculates accuracy based on correct identification
+
+**Output**: `{USERNAME}/PersonaSignal-PerceivabilityTest-{Dimension}`
+
+### Stage 4: Analysis (`analyze_perceivability.py`)
+
+- Analyzes judge accuracy by dimension
+- Generates visualization showing which dimensions are most detectable
+
+**Output**: `accuracy.png`
+
+## Combining Datasets
+
+To combine results across multiple dimensions:
+
+```python
+# Edit combine_datasets_selective.py
+dimensions_to_combine = list(config.DIMENSIONS.keys())  # All dimensions
+
+# Run
+python combine_datasets_selective.py
 ```
 
-This creates `datagen/final_dataset.json` with entries like:
+This creates:
 
-```json
-{
-  "question_id": "locale_and_time_zone_q1",
-  "dimension": "locale_and_time_zone",
-  "dimension_value": "US Pacific",
-  "question": "Could you suggest two time slots for a weekly meeting?",
-  "target_persona": "A project coordinator based in San Francisco...",
-  "distractor_personas": [
-    "A project coordinator in New York using EST...",
-    "A coordinator in London using GMT/BST...",
-    "A coordinator in Berlin using CET...",
-    "A coordinator in Mumbai using IST...",
-    "A coordinator in Tokyo using JST..."
-  ],
-  "possible_dimension_values": [
-    "US Pacific",
-    "US Eastern",
-    "UK",
-    "EU Central",
-    "India",
-    "China Mainland",
-    "Japan",
-    "Brazil",
-    "Australia"
-  ]
+- `PersonaSignal-All-Questions` - Combined question/persona dataset
+- `PersonaSignal-All-Responses` - Combined personalized responses
+- `PersonaSignal-All-Perceivability` - Combined perceivability results
+
+## Configuration
+
+In `config.py`, you can adjust:
+
+```python
+# Data generation
+NUM_QUESTIONS = 20      # Number of questions per dimension
+NUM_DISTRACTORS = 5     # Number of distractor personas
+
+# Models
+QUESTION_GEN_MODEL = "gpt-5"          # For generating questions
+PERSONA_GEN_MODEL = "gpt-4o-mini"     # For generating personas
+RESPONSE_GEN_MODEL = "gpt-4o-mini"   # For personalized responses
+JUDGE_MODEL = "gpt-4o-mini"          # For perceivability testing
+
+# HuggingFace
+HF_USERNAME = "YourUsername"
+```
+
+## Adding a New Dimension
+
+Add to `config.py`:
+
+```python
+DIMENSIONS = {
+    # ... existing dimensions ...
+    "your_new_dimension": {
+        "name": "your_new_dimension",
+        "values": ["Value1", "Value2", "Value3"],
+        "description": "What this dimension represents...",
+    },
 }
 ```
 
-## Workflow
+Then set `DIMENSION_NAME = "your_new_dimension"` and run the pipeline.
 
-1. Define a dimension with its possible values and description
-2. For each question you want to ask:
-   - Choose a dimension value (sampled_value) for the question
-   - Write why responses should differ (why_differ) and how personalization appears subtly (how_subtle)
-   - Use an LLM to generate a ground truth persona with that dimension value
-   - Use an LLM to generate distractor personas with different dimension values
-   - Include filler attributes (age, sex, job, hobbies) that don't affect answers
-3. Add entries to `datagen/data_with_personas.csv` using `add_persona()` or directly edit the CSV
-4. Run `python datagen/dataset_prep.py generate` to create `datagen/final_dataset.json`
-5. Use the dataset to generate responses and evaluate perceivability with an LLM judge
+## Output Format
+
+Each dataset entry contains:
+
+- `dimension_name` - The persona dimension
+- `dimension_values` - All possible values
+- `dimension_description` - What the dimension controls
+- `question` - The question asked
+- `why_differ` - Why responses should differ
+- `how_subtle` - How personalization appears subtly
+- `sampled_value` - The value used for this entry
+- `ground_truth_persona` - The target persona
+- `distractor_personas` - List of distractor personas
+- `personalized_response` - Generated response (stages 2+)
+- `judge_choice`, `judge_rationale`, `reward` - Judge results (stage 3)
+
+## Files
+
+```
+datagen/
+  ├── datagen.py          # Question & persona generation
+  ├── utils.py            # LLM wrappers
+  └── ...
+
+inference/
+  ├── collect_response.py  # Generate personalized responses
+  └── test_perceivability.py  # Judge model evaluation
+
+config.py                  # Central configuration
+analyze_perceivability.py  # Results analysis
+combine_datasets_selective.py  # Combine multiple dimensions
+```
 
 ## Notes
 
-- Each persona should include filler information (age, sex, job, etc.) that doesn't affect the answer
-- Only the dimension value should influence how the question is answered
-- Distractor personas must have different values for the target dimension
-- The parser handles both Python list format (`['a', 'b']`) and NumPy array format (`['a' 'b']`)
+- Personas only differ in the target dimension, with other attributes being neutral
+- The assistant is instructed to NOT explicitly mention persona traits
+- Judge accuracy measures how "leaky" the personalization is
+- Higher accuracy = more detectable = easier to personalize (but may also indicate leakage)

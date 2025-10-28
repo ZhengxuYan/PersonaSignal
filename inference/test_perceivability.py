@@ -78,21 +78,31 @@ class PerceivabilityTestGenerator(curator.LLM):
 
 
 if __name__ == "__main__":
-    print(f"Testing perceivability for dimension: {config.DIMENSION_NAME}")
+    from config import (
+        DIMENSION_NAME,
+        RESPONSE_GEN_MODEL,
+        JUDGE_MODEL,
+    )
+
+    print(f"Testing perceivability for dimension: {DIMENSION_NAME}")
 
     # Load dataset from previous step
-    input_dataset_name = config.get_dataset_name("responses")
+    input_dataset_name = config.get_dataset_name_with_model(
+        "responses", RESPONSE_GEN_MODEL
+    )
     print(f"Loading dataset from: {input_dataset_name}")
     dataset = load_dataset(input_dataset_name, split="train")
 
     # Run perceivability test
-    print(f"Running perceivability test using {config.JUDGE_MODEL}...")
+    print(f"Running perceivability test using {JUDGE_MODEL}...")
     perceivability_test_generator = PerceivabilityTestGenerator(
-        model_name=config.JUDGE_MODEL
+        model_name=JUDGE_MODEL
     )
     dataset_with_perceivability_test = perceivability_test_generator(dataset)
 
     # Push to HuggingFace Hub
-    output_dataset_name = config.get_dataset_name("perceivability")
+    output_dataset_name = config.get_dataset_name_with_model(
+        "perceivability", JUDGE_MODEL
+    )
     print(f"Pushing dataset to: {output_dataset_name}")
     dataset_with_perceivability_test.dataset.push_to_hub(output_dataset_name)

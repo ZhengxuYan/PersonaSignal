@@ -56,6 +56,8 @@ def combine_specific_dimensions(dimensions: list[str], stages: list[str] = None)
                 "num_distractors": Value("int64"),
                 "ground_truth_persona": Value("string"),
                 "distractor_personas": Sequence(Value("string")),
+                "question_gen_model": Value("string"),
+                "persona_gen_model": Value("string"),
             }
         ),
         "responses": Features(
@@ -71,6 +73,9 @@ def combine_specific_dimensions(dimensions: list[str], stages: list[str] = None)
                 "ground_truth_persona": Value("string"),
                 "distractor_personas": Sequence(Value("string")),
                 "personalized_response": Value("string"),
+                "question_gen_model": Value("string"),
+                "persona_gen_model": Value("string"),
+                "response_gen_model": Value("string"),
             }
         ),
         "perceivability": Features(
@@ -89,6 +94,10 @@ def combine_specific_dimensions(dimensions: list[str], stages: list[str] = None)
                 "judge_choice": Value("string"),
                 "judge_rationale": Value("string"),
                 "reward": Value("int64"),
+                "question_gen_model": Value("string"),
+                "persona_gen_model": Value("string"),
+                "response_gen_model": Value("string"),
+                "judge_model": Value("string"),
             }
         ),
     }
@@ -108,10 +117,55 @@ def combine_specific_dimensions(dimensions: list[str], stages: list[str] = None)
             config.DIMENSION_NAME = dimension
 
             try:
-                dataset_name = config.get_dataset_name(stage)
+                # Get dataset name with model suffix
+                if stage == "questions":
+                    dataset_name = config.get_dataset_name_with_model(
+                        stage, config.QUESTION_GEN_MODEL
+                    )
+                elif stage == "responses":
+                    dataset_name = config.get_dataset_name_with_model(
+                        stage, config.RESPONSE_GEN_MODEL
+                    )
+                else:  # perceivability
+                    dataset_name = config.get_dataset_name_with_model(
+                        stage, config.JUDGE_MODEL
+                    )
+
                 print(f"  Loading: {dataset_name}")
 
                 dataset = load_dataset(dataset_name, split="train")
+
+                # Add model tracking fields
+                if stage == "questions":
+                    dataset = dataset.add_column(
+                        "question_gen_model", [config.QUESTION_GEN_MODEL] * len(dataset)
+                    )
+                    dataset = dataset.add_column(
+                        "persona_gen_model", [config.PERSONA_GEN_MODEL] * len(dataset)
+                    )
+                elif stage == "responses":
+                    dataset = dataset.add_column(
+                        "question_gen_model", [config.QUESTION_GEN_MODEL] * len(dataset)
+                    )
+                    dataset = dataset.add_column(
+                        "persona_gen_model", [config.PERSONA_GEN_MODEL] * len(dataset)
+                    )
+                    dataset = dataset.add_column(
+                        "response_gen_model", [config.RESPONSE_GEN_MODEL] * len(dataset)
+                    )
+                else:  # perceivability
+                    dataset = dataset.add_column(
+                        "question_gen_model", [config.QUESTION_GEN_MODEL] * len(dataset)
+                    )
+                    dataset = dataset.add_column(
+                        "persona_gen_model", [config.PERSONA_GEN_MODEL] * len(dataset)
+                    )
+                    dataset = dataset.add_column(
+                        "response_gen_model", [config.RESPONSE_GEN_MODEL] * len(dataset)
+                    )
+                    dataset = dataset.add_column(
+                        "judge_model", [config.JUDGE_MODEL] * len(dataset)
+                    )
 
                 # Cast to common schema to ensure compatibility
                 dataset = dataset.cast(common_schemas[stage])
@@ -182,14 +236,37 @@ def main():
         suffix = f"{num_dims}D"
 
     for stage, dataset in combined_datasets.items():
-        output_name = f"{config.HF_USERNAME}/PersonaSignal-{suffix}-{stage.title()}"
+        # Add model suffix to output name
+        if stage == "questions":
+            model_suffix = config.QUESTION_GEN_MODEL
+        elif stage == "responses":
+            model_suffix = config.RESPONSE_GEN_MODEL
+        else:  # perceivability
+            model_suffix = config.JUDGE_MODEL
+
+        output_name = f"{config.HF_USERNAME}/PersonaSignal-{suffix}-{stage.title()}-{model_suffix}"
         print(f"Pushing: {output_name}")
         print(f"  Rows: {len(dataset)}")
         print(f"  Dimensions: {num_dims}")
+
+        # Show model tracking info
+        if stage == "questions":
+            print(
+                f"  Models tracked: question={config.QUESTION_GEN_MODEL}, persona={config.PERSONA_GEN_MODEL}"
+            )
+        elif stage == "responses":
+            print(
+                f"  Models tracked: question={config.QUESTION_GEN_MODEL}, persona={config.PERSONA_GEN_MODEL}, response={config.RESPONSE_GEN_MODEL}"
+            )
+        else:  # perceivability
+            print(
+                f"  Models tracked: question={config.QUESTION_GEN_MODEL}, persona={config.PERSONA_GEN_MODEL}, response={config.RESPONSE_GEN_MODEL}, judge={config.JUDGE_MODEL}"
+            )
+
         print(f"  Columns: {dataset.column_names}")
 
         dataset.push_to_hub(output_name)
-        print(f"  ✓ Success!\n")
+        print("  ✓ Success!\n")
 
     print("Done!")
 

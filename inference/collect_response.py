@@ -1,10 +1,9 @@
 import sys
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
-import pandas as pd
 from bespokelabs import curator
-from datasets import Dataset, load_dataset
+from datasets import load_dataset
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
@@ -55,21 +54,31 @@ class PersonalizedResponseGenerator(curator.LLM):
 
 
 if __name__ == "__main__":
-    print(f"Generating personalized responses for dimension: {config.DIMENSION_NAME}")
+    from config import (
+        DIMENSION_NAME,
+        RESPONSE_GEN_MODEL,
+        QUESTION_GEN_MODEL,
+    )
+
+    print(f"Generating personalized responses for dimension: {DIMENSION_NAME}")
 
     # Load dataset from previous step
-    input_dataset_name = config.get_dataset_name("questions")
+    input_dataset_name = config.get_dataset_name_with_model(
+        "questions", QUESTION_GEN_MODEL
+    )
     print(f"Loading dataset from: {input_dataset_name}")
     dataset = load_dataset(input_dataset_name, split="train")
 
     # Generate personalized responses
-    print(f"Generating personalized responses using {config.RESPONSE_GEN_MODEL}...")
+    print(f"Generating personalized responses using {RESPONSE_GEN_MODEL}...")
     personalized_response_generator = PersonalizedResponseGenerator(
-        model_name=config.RESPONSE_GEN_MODEL
+        model_name=RESPONSE_GEN_MODEL
     )
     dataset_with_personalized_response = personalized_response_generator(dataset)
 
     # Push to HuggingFace Hub
-    output_dataset_name = config.get_dataset_name("responses")
+    output_dataset_name = config.get_dataset_name_with_model(
+        "responses", RESPONSE_GEN_MODEL
+    )
     print(f"Pushing dataset to: {output_dataset_name}")
     dataset_with_personalized_response.dataset.push_to_hub(output_dataset_name)

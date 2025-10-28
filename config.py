@@ -3,6 +3,8 @@ Shared configuration for PersonaSignal pipeline.
 Change these values to switch between different dimensions and models.
 """
 
+import os
+
 # HuggingFace configuration
 HF_USERNAME = "JasonYan777"
 
@@ -70,7 +72,8 @@ DIMENSIONS = {
 }
 
 # Active dimension configuration
-DIMENSION_NAME = "agency_expectation"
+# Can be overridden by PERSONA_DIMENSION environment variable
+DIMENSION_NAME = os.environ.get("PERSONA_DIMENSION", "agency_expectation")
 
 # Model configuration
 QUESTION_GEN_MODEL = "gpt-5"
@@ -122,6 +125,32 @@ def get_dataset_name(stage: str) -> str:
         )
 
     return stage_names[stage]
+
+
+def get_dataset_name_with_model(stage: str, model_name: str) -> str:
+    """
+    Generate HuggingFace dataset name for a given stage with model name.
+
+    Args:
+        stage: One of 'questions', 'responses', 'perceivability'
+        model_name: Model name used in this stage (e.g., 'gpt-4o-mini')
+
+    Returns:
+        Full HuggingFace dataset name with model suffix
+    """
+    base_name = get_dataset_name(stage)
+
+    if stage == "questions":
+        # Questions use QUESTION_GEN_MODEL for generation and PERSONA_GEN_MODEL for personas
+        return f"{base_name}-{QUESTION_GEN_MODEL}"
+    elif stage == "responses":
+        # Responses use RESPONSE_GEN_MODEL
+        return f"{base_name}-{RESPONSE_GEN_MODEL}"
+    elif stage == "perceivability":
+        # Perceivability uses JUDGE_MODEL
+        return f"{base_name}-{JUDGE_MODEL}"
+
+    return base_name
 
 
 def get_all_dataset_names(dimensions: list[str] = None) -> dict:
