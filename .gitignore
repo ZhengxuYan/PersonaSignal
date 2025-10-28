@@ -26,3 +26,17 @@ Thumbs.db
 
 # Environment variables
 .env
+
+# Output files
+*.png
+*.pdf
+*.csv
+*.json
+*.txt
+*.log
+*.err
+*.out
+*.err.log
+*.out.log
+*.err.log.gz
+*.out.log.gz
