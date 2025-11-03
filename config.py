@@ -78,13 +78,17 @@ DIMENSION_NAME = os.environ.get("PERSONA_DIMENSION", "agency_expectation")
 # Model configuration
 QUESTION_GEN_MODEL = "gpt-5"
 PERSONA_GEN_MODEL = "gpt-4o-mini"
-RESPONSE_GEN_MODEL = "gpt-4o-mini"
-JUDGE_MODEL = "gpt-4o-mini"
+RESPONSE_GEN_MODEL = "gpt-5"
+JUDGE_MODEL = "gpt-4o"
 
 # Data generation parameters
 SEED = 42
-NUM_QUESTIONS = 20
+NUM_QUESTIONS = 30
 NUM_DISTRACTORS = 5
+
+# Dataset mode: append to existing dataset or overwrite
+# Can be overridden by APPEND_DATASET environment variable (set to "true" to append)
+APPEND_MODE = os.environ.get("APPEND_DATASET", "false").lower() == "true"
 
 
 def get_dimension() -> dict:

@@ -180,6 +180,133 @@ def plot_accuracy(df: pd.DataFrame, output_filename: str = "accuracy.png"):
     return overall_acc, dim_acc
 
 
+def plot_comparison(
+    results: dict, judge_model: str, output_filename: str = "accuracy_comparison.png"
+):
+    """
+    Plot comparison of multiple models in a single graph.
+
+    Args:
+        results: Dict mapping model_name -> {"overall": float, "dimensions": pd.Series}
+        judge_model: Name of the judge model used
+        output_filename: Output file name
+    """
+    import numpy as np
+
+    # Get all dimensions (assume all models have same dimensions)
+    first_model = list(results.keys())[0]
+    dimensions = list(results[first_model]["dimensions"].index)
+    dim_labels = [dim.replace("_", " ").title() for dim in dimensions]
+
+    # Prepare data
+    models = list(results.keys())
+    categories = ["Overall"] + dim_labels
+    n_categories = len(categories)
+    n_models = len(models)
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(14, 8))
+
+    # Define colors for different models
+    color_palette = ["#2C3E50", "#E74C3C", "#27AE60", "#F39C12", "#9B59B6", "#1ABC9C"]
+    colors = color_palette[:n_models]
+
+    # Set bar width and positions
+    bar_width = 0.8 / n_models
+    x = np.arange(n_categories)
+
+    # Plot bars for each model
+    for i, (model, color) in enumerate(zip(models, colors)):
+        offset = (i - n_models / 2 + 0.5) * bar_width
+
+        # Get accuracies for this model
+        overall = results[model]["overall"]
+        dim_accs = [results[model]["dimensions"][dim] for dim in dimensions]
+        accuracies = [overall] + dim_accs
+
+        bars = ax.bar(
+            x + offset,
+            accuracies,
+            bar_width,
+            label=model,
+            color=color,
+            edgecolor="black",
+            linewidth=1,
+            alpha=0.85,
+            zorder=3,
+        )
+
+        # Add value labels on bars
+        for bar, acc in zip(bars, accuracies):
+            height = bar.get_height()
+            # Only show label if bar is tall enough and not too crowded
+            if height > 5:
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2.0,
+                    height + 1,
+                    f"{acc:.0f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                    fontweight="bold",
+                )
+
+    # Styling
+    ax.set_ylabel("Accuracy (%)", fontsize=16, fontweight="bold", labelpad=10)
+    ax.set_xlabel("Dimension", fontsize=16, fontweight="bold", labelpad=10)
+
+    # Title with judge model info
+    title = "Perceivability Test: Model Comparison"
+    subtitle = f"Judge Model: {judge_model}"
+    ax.set_title(title, fontsize=18, fontweight="bold", pad=25)
+    ax.text(
+        0.5,
+        1.05,
+        subtitle,
+        transform=ax.transAxes,
+        ha="center",
+        fontsize=13,
+        style="italic",
+        color="#555555",
+    )
+
+    # Set y-axis limits
+    ax.set_ylim(0, 105)
+
+    # Grid
+    ax.yaxis.grid(True, linestyle="--", alpha=0.4, color="gray", zorder=0)
+    ax.set_axisbelow(True)
+
+    # Set x-axis
+    ax.set_xticks(x)
+    ax.set_xticklabels(categories, rotation=45, ha="right")
+
+    # Add horizontal line at 100%
+    ax.axhline(y=100, color="gray", linestyle="-", linewidth=1, alpha=0.3, zorder=1)
+
+    # Legend
+    ax.legend(
+        loc="upper left",
+        frameon=True,
+        fancybox=True,
+        shadow=True,
+        fontsize=12,
+        title="Response Model",
+        title_fontsize=13,
+    )
+
+    # Remove top and right spines
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_linewidth(1.2)
+    ax.spines["bottom"].set_linewidth(1.2)
+
+    plt.tight_layout()
+    plt.savefig(output_filename, dpi=300, bbox_inches="tight", facecolor="white")
+    print(f"\n✓ Saved comparison: {output_filename}")
+    plt.close()
+
+
 def print_stats(overall_acc, dim_acc, df=None):
     print(f"\nOverall Accuracy: {overall_acc:.1f}%")
     print("\nAccuracy by Dimension:")
@@ -213,6 +340,7 @@ def compare_response_models(
     response_models: list[str],
     judge_model: str = None,
     model_hf_accounts: dict[str, str] = None,
+    generate_individual_plots: bool = True,
 ):
     """
     Compare multiple response models side by side.
@@ -223,6 +351,7 @@ def compare_response_models(
         model_hf_accounts: Dict mapping response model names to HF usernames.
                           Example: {"gpt-4o": "JasonYan777", "claude-3": "other_username"}
                           If None or model not in dict, uses config.HF_USERNAME
+        generate_individual_plots: If True, also generate individual plots for each model
     """
     if judge_model is None:
         judge_model = config.JUDGE_MODEL
@@ -254,23 +383,46 @@ def compare_response_models(
                 hf_username=hf_username,
             )
 
-            model_safe = response_model.replace("-", "_").replace(".", "_")
-            output_file = f"accuracy_{model_safe}.png"
-            overall, dims = plot_accuracy(df, output_filename=output_file)
-            print_stats(overall, dims, df)
+            # Generate individual plot if requested
+            if generate_individual_plots:
+                model_safe = response_model.replace("-", "_").replace(".", "_")
+                output_file = f"accuracy_{model_safe}.png"
+                overall, dims = plot_accuracy(df, output_filename=output_file)
+                print_stats(overall, dims, df)
+            else:
+                # Just calculate stats without plotting
+                overall = df["reward"].mean() * 100
+                dims = df.groupby("dimension_name")["reward"].mean() * 100
+                print_stats(overall, dims, df)
 
             results[response_model] = {"overall": overall, "dimensions": dims}
         except Exception as e:
             print(f"✗ Failed to load {response_model}: {e}")
 
-    # Print comparison summary
+    # Generate combined comparison plot
     if len(results) > 1:
+        print(f"\n{'='*60}")
+        print("GENERATING COMBINED COMPARISON")
+        print(f"{'='*60}")
+
+        plot_comparison(results, judge_model, output_filename="accuracy_comparison.png")
+
         print(f"\n{'='*60}")
         print("COMPARISON SUMMARY")
         print(f"{'='*60}")
         print("\nOverall Accuracy:")
         for model, data in results.items():
             print(f"  {model}: {data['overall']:.1f}%")
+
+        # Show dimension-by-dimension comparison
+        print("\nAccuracy by Dimension:")
+        all_dims = list(results[list(results.keys())[0]]["dimensions"].index)
+        for dim in all_dims:
+            dim_label = dim.replace("_", " ").title()
+            print(f"\n  {dim_label}:")
+            for model, data in results.items():
+                acc = data["dimensions"][dim]
+                print(f"    {model}: {acc:.1f}%")
 
     return results
 
@@ -293,14 +445,22 @@ def main():
 
     # Option 2: Compare multiple response models from different HF accounts
     # Uncomment the following to compare different response models:
-    # compare_models = ["gpt-4o-mini", "gpt-4o", "claude-3-5-sonnet"]
-    # model_accounts = {
-    #     "gpt-4o-mini": "JasonYan777",
-    #     "gpt-4o": "JasonYan777",
-    #     "claude-3-5-sonnet": "OtherAccount",  # Different account for this model
-    # }
-    # compare_response_models(compare_models, judge_model=judge_model, model_hf_accounts=model_accounts)
-    # return
+    # This will generate:
+    # - Individual plots for each model (accuracy_gpt_4o_mini.png, accuracy_gpt_4o.png)
+    # - A combined comparison plot (accuracy_comparison.png)
+    compare_models = ["gpt-4o-mini", "gpt-4o", "gpt-5"]
+    model_accounts = {
+        "gpt-4o-mini": "JasonYan777",
+        "gpt-4o": "JasonYan777",
+        "gpt-5": "JasonYan777",
+    }
+    compare_response_models(
+        compare_models,
+        judge_model=judge_model,
+        model_hf_accounts=model_accounts,
+        generate_individual_plots=True,  # Set to False to only generate comparison plot
+    )
+    return
 
     # =====================================
 

@@ -328,6 +328,7 @@ if __name__ == "__main__":
         SEED,
         NUM_QUESTIONS,
         NUM_DISTRACTORS,
+        APPEND_MODE,
     )
 
     # Load dimension and configuration
@@ -339,9 +340,10 @@ if __name__ == "__main__":
 
     print(f"Running data generation for dimension: {DIMENSION_NAME}")
     print(f"Dimension values: {dimension[0]['values']}")
+    print(f"Mode: {'APPEND' if APPEND_MODE else 'OVERWRITE'}")
 
     # Step 1: Generate questions → HF Dataset
-    print("Step 1: Generating questions...")
+    print("\nStep 1: Generating questions...")
     questions_dataset = generate_questions_for_dimension(
         dimension, model_name, num_questions
     )
@@ -361,8 +363,35 @@ if __name__ == "__main__":
 
     # Push to HuggingFace Hub
     dataset_name = config.get_dataset_name_with_model("questions", model_name)
-    print(f"\nPushing dataset to: {dataset_name}")
-    dataset_with_personas.push_to_hub(dataset_name)
+
+    if APPEND_MODE:
+        print(f"\nAppend mode enabled. Checking for existing dataset: {dataset_name}")
+        try:
+            from datasets import load_dataset, concatenate_datasets
+
+            # Try to load existing dataset
+            existing_dataset = load_dataset(dataset_name, split="train")
+            print(f"Found existing dataset with {len(existing_dataset)} rows.")
+
+            # Concatenate new data with existing data
+            combined_dataset = concatenate_datasets(
+                [existing_dataset, dataset_with_personas]
+            )
+            print(
+                f"Combined dataset has {len(combined_dataset)} rows (added {len(dataset_with_personas)} new rows)."
+            )
+
+            # Push combined dataset
+            print(f"Pushing combined dataset to: {dataset_name}")
+            combined_dataset.push_to_hub(dataset_name)
+
+        except Exception as e:
+            print(f"Could not load existing dataset (it may not exist yet): {e}")
+            print(f"Creating new dataset at: {dataset_name}")
+            dataset_with_personas.push_to_hub(dataset_name)
+    else:
+        print(f"\nOverwrite mode. Pushing dataset to: {dataset_name}")
+        dataset_with_personas.push_to_hub(dataset_name)
 # # Now save to CSV (easy one-liner)
 # dataset_with_personas.to_pandas().to_csv(
 #     "data_with_personas.csv", index=False)
