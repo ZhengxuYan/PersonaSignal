@@ -78,8 +78,13 @@ DIMENSION_NAME = os.environ.get("PERSONA_DIMENSION", "agency_expectation")
 # Model configuration
 QUESTION_GEN_MODEL = "gpt-5"
 PERSONA_GEN_MODEL = "gpt-4o-mini"
-RESPONSE_GEN_MODEL = "gpt-5"
+RESPONSE_GEN_MODEL = "together_ai/meta-llama/Llama-3.3-70B-Instruct-Turbo"
 JUDGE_MODEL = "gpt-4o"
+
+# Backend configuration
+# Can be overridden by BACKEND environment variable
+# Supported backends: "litellm", "openai", "anthropic", etc.
+BACKEND = os.environ.get("BACKEND", "litellm")
 
 # Data generation parameters
 SEED = 42

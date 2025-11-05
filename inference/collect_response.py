@@ -58,6 +58,7 @@ if __name__ == "__main__":
         DIMENSION_NAME,
         RESPONSE_GEN_MODEL,
         QUESTION_GEN_MODEL,
+        BACKEND,
     )
 
     print(f"Generating personalized responses for dimension: {DIMENSION_NAME}")
@@ -70,9 +71,11 @@ if __name__ == "__main__":
     dataset = load_dataset(input_dataset_name, split="train")
 
     # Generate personalized responses
-    print(f"Generating personalized responses using {RESPONSE_GEN_MODEL}...")
+    print(
+        f"Generating personalized responses using {RESPONSE_GEN_MODEL} with backend {BACKEND}..."
+    )
     personalized_response_generator = PersonalizedResponseGenerator(
-        model_name=RESPONSE_GEN_MODEL
+        model_name=RESPONSE_GEN_MODEL, backend=BACKEND
     )
     dataset_with_personalized_response = personalized_response_generator(dataset)
 
