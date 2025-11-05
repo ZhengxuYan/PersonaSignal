@@ -59,6 +59,7 @@ if __name__ == "__main__":
         RESPONSE_GEN_MODEL,
         QUESTION_GEN_MODEL,
         BACKEND,
+        BACKEND_PARAMS,
     )
 
     print(f"Generating personalized responses for dimension: {DIMENSION_NAME}")
@@ -74,9 +75,10 @@ if __name__ == "__main__":
     print(
         f"Generating personalized responses using {RESPONSE_GEN_MODEL} with backend {BACKEND}..."
     )
-    personalized_response_generator = PersonalizedResponseGenerator(
-        model_name=RESPONSE_GEN_MODEL, backend=BACKEND
-    )
+    generator_kwargs = {"model_name": RESPONSE_GEN_MODEL, "backend": BACKEND}
+    if BACKEND_PARAMS is not None:
+        generator_kwargs["backend_params"] = BACKEND_PARAMS
+    personalized_response_generator = PersonalizedResponseGenerator(**generator_kwargs)
     dataset_with_personalized_response = personalized_response_generator(dataset)
 
     # Push to HuggingFace Hub

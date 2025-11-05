@@ -82,6 +82,8 @@ if __name__ == "__main__":
         DIMENSION_NAME,
         RESPONSE_GEN_MODEL,
         JUDGE_MODEL,
+        BACKEND,
+        BACKEND_PARAMS,
     )
 
     print(f"Testing perceivability for dimension: {DIMENSION_NAME}")
@@ -94,15 +96,18 @@ if __name__ == "__main__":
     dataset = load_dataset(input_dataset_name, split="train")
 
     # Run perceivability test
-    print(f"Running perceivability test using {JUDGE_MODEL}...")
-    perceivability_test_generator = PerceivabilityTestGenerator(
-        model_name=JUDGE_MODEL
-    )
+    print(f"Running perceivability test using judge model {JUDGE_MODEL}...")
+    print(f"Evaluating responses from: {RESPONSE_GEN_MODEL}")
+
+    generator_kwargs = {"model_name": JUDGE_MODEL, "backend": BACKEND}
+    if BACKEND_PARAMS is not None:
+        generator_kwargs["backend_params"] = BACKEND_PARAMS
+    perceivability_test_generator = PerceivabilityTestGenerator(**generator_kwargs)
     dataset_with_perceivability_test = perceivability_test_generator(dataset)
 
-    # Push to HuggingFace Hub
+    # Push to HuggingFace Hub (keyed by response model, not judge model)
     output_dataset_name = config.get_dataset_name_with_model(
-        "perceivability", JUDGE_MODEL
+        "perceivability", RESPONSE_GEN_MODEL
     )
     print(f"Pushing dataset to: {output_dataset_name}")
     dataset_with_perceivability_test.dataset.push_to_hub(output_dataset_name)

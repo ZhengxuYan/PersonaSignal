@@ -427,6 +427,60 @@ def compare_response_models(
     return results
 
 
+def analyze_single_dimension(
+    dimension_name: str = None,
+    judge_model: str = None,
+    hf_username: str = None,
+    output_filename: str = None,
+):
+    """
+    Analyze a single dimension dataset.
+
+    Args:
+        dimension_name: Dimension to analyze (e.g., "planning_horizon").
+                       If None, uses config.DIMENSION_NAME
+        judge_model: Judge model name (e.g., "gpt-4o"). If None, uses config.JUDGE_MODEL
+        hf_username: HuggingFace username. If None, uses config.HF_USERNAME
+        output_filename: Custom output filename. If None, auto-generates based on dimension and model
+    """
+    if dimension_name is None:
+        dimension_name = config.DIMENSION_NAME
+    if judge_model is None:
+        judge_model = config.JUDGE_MODEL
+    if hf_username is None:
+        hf_username = config.HF_USERNAME
+
+    # Format dimension name for dataset (e.g., "planning_horizon" -> "Planning-Horizon")
+    dimension_formatted = dimension_name.replace("_", "-").title()
+
+    # Construct dataset name
+    dataset_name = f"{hf_username}/PersonaSignal-PerceivabilityTest-{dimension_formatted}-{judge_model}"
+
+    print(f"\n{'='*60}")
+    print(f"Analyzing Single Dimension: {dimension_name}")
+    print(f"Dataset: {dataset_name}")
+    print(f"{'='*60}")
+
+    # Load data
+    df = load_perceivability_data(
+        dataset_name=dataset_name,
+        judge_model=judge_model,
+        hf_username=hf_username,
+    )
+
+    # Generate output filename if not provided
+    if output_filename is None:
+        dimension_safe = dimension_name.replace("_", "-")
+        judge_safe = judge_model.replace("/", "-").replace(".", "_")
+        output_filename = f"accuracy_{dimension_safe}_{judge_safe}.png"
+
+    # Plot accuracy (for single dimension, there's only one dimension category)
+    overall, dims = plot_accuracy(df, output_filename=output_filename)
+    print_stats(overall, dims, df)
+
+    return df, overall, dims
+
+
 def main():
     """
     Main analysis function.
@@ -438,8 +492,8 @@ def main():
     """
     # ========== CONFIGURE HERE ==========
 
-    # Option 1: Analyze single response model (uses config defaults)
-    response_model = config.RESPONSE_GEN_MODEL
+    # Option 1: Analyze single response model with ALL dimensions combined (uses config defaults)
+    response_model = config.RESPONSE_GEN_MODEL.split("/")[-1]
     judge_model = config.JUDGE_MODEL
     hf_username = config.HF_USERNAME  # Or specify different account
 
@@ -448,23 +502,33 @@ def main():
     # This will generate:
     # - Individual plots for each model (accuracy_gpt_4o_mini.png, accuracy_gpt_4o.png)
     # - A combined comparison plot (accuracy_comparison.png)
-    compare_models = ["gpt-4o-mini", "gpt-4o", "gpt-5"]
-    model_accounts = {
-        "gpt-4o-mini": "JasonYan777",
-        "gpt-4o": "JasonYan777",
-        "gpt-5": "JasonYan777",
-    }
-    compare_response_models(
-        compare_models,
-        judge_model=judge_model,
-        model_hf_accounts=model_accounts,
-        generate_individual_plots=True,  # Set to False to only generate comparison plot
+    # compare_models = ["gpt-4o-mini", "gpt-4o", "gpt-5"]
+    # model_accounts = {
+    #     "gpt-4o-mini": "JasonYan777",
+    #     "gpt-4o": "JasonYan777",
+    #     "gpt-5": "JasonYan777",
+    # }
+    # compare_response_models(
+    #     compare_models,
+    #     judge_model=judge_model,
+    #     model_hf_accounts=model_accounts,
+    #     generate_individual_plots=True,  # Set to False to only generate comparison plot
+    # )
+    # return
+
+    # Option 3: Analyze a single dimension dataset
+    # Uncomment the following to analyze a specific dimension:
+    analyze_single_dimension(
+        dimension_name="planning_horizon",  # or any dimension from config.DIMENSIONS
+        judge_model="gpt-4o",
+        hf_username="JasonYan777",
+        output_filename="accuracy_planning_horizon_gpt_4o.png",  # optional
     )
     return
 
     # =====================================
 
-    # Load and analyze single model
+    # Load and analyze single model with all dimensions
     dataset_name = f"{hf_username}/PersonaSignal-All-Perceivability-{response_model}"
     df = load_perceivability_data(
         dataset_name=dataset_name,

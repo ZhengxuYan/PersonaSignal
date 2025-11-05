@@ -78,13 +78,21 @@ DIMENSION_NAME = os.environ.get("PERSONA_DIMENSION", "agency_expectation")
 # Model configuration
 QUESTION_GEN_MODEL = "gpt-5"
 PERSONA_GEN_MODEL = "gpt-4o-mini"
-RESPONSE_GEN_MODEL = "together_ai/meta-llama/Llama-3.3-70B-Instruct-Turbo"
+RESPONSE_GEN_MODEL = "together_ai/meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
 JUDGE_MODEL = "gpt-4o"
 
 # Backend configuration
 # Can be overridden by BACKEND environment variable
 # Supported backends: "litellm", "openai", "anthropic", etc.
 BACKEND = os.environ.get("BACKEND", "litellm")
+
+# Backend parameters (e.g., rate limits)
+# Set to None to use default backend settings
+BACKEND_PARAMS = {
+    "max_requests_per_minute": 2_000,  # 2K requests/minute
+    "max_tokens_per_minute": 4_000_000,  # 4M tokens/minute
+}
+# BACKEND_PARAMS = None  # Uncomment to disable custom backend params
 
 # Data generation parameters
 SEED = 42
@@ -151,13 +159,14 @@ def get_dataset_name_with_model(stage: str, model_name: str) -> str:
 
     if stage == "questions":
         # Questions use QUESTION_GEN_MODEL for generation and PERSONA_GEN_MODEL for personas
-        return f"{base_name}-{QUESTION_GEN_MODEL}"
+        return f"{base_name}-{QUESTION_GEN_MODEL.split('/')[-1]}"
     elif stage == "responses":
         # Responses use RESPONSE_GEN_MODEL
-        return f"{base_name}-{RESPONSE_GEN_MODEL}"
+        return f"{base_name}-{RESPONSE_GEN_MODEL.split('/')[-1]}"
     elif stage == "perceivability":
-        # Perceivability uses JUDGE_MODEL
-        return f"{base_name}-{JUDGE_MODEL}"
+        # Perceivability datasets are keyed by RESPONSE_GEN_MODEL (the model being evaluated)
+        # not JUDGE_MODEL (the evaluation tool)
+        return f"{base_name}-{RESPONSE_GEN_MODEL.split('/')[-1]}"
 
     return base_name
 
