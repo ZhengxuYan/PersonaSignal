@@ -193,13 +193,15 @@ def plot_comparison(
     """
     import numpy as np
 
-    # Get all dimensions (assume all models have same dimensions)
-    first_model = list(results.keys())[0]
-    dimensions = list(results[first_model]["dimensions"].index)
+    # Get dimensions that are common across all models
+    all_dimensions = [
+        set(results[model]["dimensions"].index) for model in results.keys()
+    ]
+    dimensions = sorted(list(set.intersection(*all_dimensions)))
     dim_labels = [dim.replace("_", " ").title() for dim in dimensions]
 
-    # Prepare data
-    models = list(results.keys())
+    # Prepare data - sort models by overall accuracy (lowest to highest)
+    models = sorted(results.keys(), key=lambda m: results[m]["overall"])
     categories = ["Overall"] + dim_labels
     n_categories = len(categories)
     n_models = len(models)
@@ -258,10 +260,10 @@ def plot_comparison(
     # Title with judge model info
     title = "Perceivability Test: Model Comparison"
     subtitle = f"Judge Model: {judge_model}"
-    ax.set_title(title, fontsize=18, fontweight="bold", pad=25)
+    ax.set_title(title, fontsize=18, fontweight="bold", pad=40)
     ax.text(
         0.5,
-        1.05,
+        1.08,
         subtitle,
         transform=ax.transAxes,
         ha="center",
@@ -271,7 +273,7 @@ def plot_comparison(
     )
 
     # Set y-axis limits
-    ax.set_ylim(0, 105)
+    ax.set_ylim(0, 110)
 
     # Grid
     ax.yaxis.grid(True, linestyle="--", alpha=0.4, color="gray", zorder=0)
@@ -284,9 +286,11 @@ def plot_comparison(
     # Add horizontal line at 100%
     ax.axhline(y=100, color="gray", linestyle="-", linewidth=1, alpha=0.3, zorder=1)
 
-    # Legend
+    # Legend - position it below the plot to avoid overlapping with bars and x-labels
     ax.legend(
-        loc="upper left",
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.35),  # Move further down to clear rotated labels
+        ncol=min(n_models, 3),  # Use up to 3 columns for horizontal layout
         frameon=True,
         fancybox=True,
         shadow=True,
@@ -301,8 +305,11 @@ def plot_comparison(
     ax.spines["left"].set_linewidth(1.2)
     ax.spines["bottom"].set_linewidth(1.2)
 
+    # Use tight_layout with extra padding, then save with bbox_inches='tight' to include legend
     plt.tight_layout()
-    plt.savefig(output_filename, dpi=300, bbox_inches="tight", facecolor="white")
+    plt.savefig(
+        output_filename, dpi=300, bbox_inches="tight", facecolor="white", pad_inches=0.3
+    )
     print(f"\n✓ Saved comparison: {output_filename}")
     plt.close()
 
@@ -429,7 +436,7 @@ def compare_response_models(
 
 def analyze_single_dimension(
     dimension_name: str = None,
-    judge_model: str = None,
+    response_model: str = None,
     hf_username: str = None,
     output_filename: str = None,
 ):
@@ -445,8 +452,8 @@ def analyze_single_dimension(
     """
     if dimension_name is None:
         dimension_name = config.DIMENSION_NAME
-    if judge_model is None:
-        judge_model = config.JUDGE_MODEL
+    if response_model is None:
+        response_model = config.RESPONSE_GEN_MODEL
     if hf_username is None:
         hf_username = config.HF_USERNAME
 
@@ -454,7 +461,7 @@ def analyze_single_dimension(
     dimension_formatted = dimension_name.replace("_", "-").title()
 
     # Construct dataset name
-    dataset_name = f"{hf_username}/PersonaSignal-PerceivabilityTest-{dimension_formatted}-{judge_model}"
+    dataset_name = f"{hf_username}/PersonaSignal-PerceivabilityTest-{dimension_formatted}-{response_model}"
 
     print(f"\n{'='*60}")
     print(f"Analyzing Single Dimension: {dimension_name}")
@@ -464,15 +471,15 @@ def analyze_single_dimension(
     # Load data
     df = load_perceivability_data(
         dataset_name=dataset_name,
-        judge_model=judge_model,
+        response_model=response_model,
         hf_username=hf_username,
     )
 
     # Generate output filename if not provided
     if output_filename is None:
         dimension_safe = dimension_name.replace("_", "-")
-        judge_safe = judge_model.replace("/", "-").replace(".", "_")
-        output_filename = f"accuracy_{dimension_safe}_{judge_safe}.png"
+        response_safe = response_model.replace("/", "-").replace(".", "_")
+        output_filename = f"accuracy_{dimension_safe}_{response_safe}.png"
 
     # Plot accuracy (for single dimension, there's only one dimension category)
     overall, dims = plot_accuracy(df, output_filename=output_filename)
@@ -502,43 +509,36 @@ def main():
     # This will generate:
     # - Individual plots for each model (accuracy_gpt_4o_mini.png, accuracy_gpt_4o.png)
     # - A combined comparison plot (accuracy_comparison.png)
-    # compare_models = ["gpt-4o-mini", "gpt-4o", "gpt-5"]
-    # model_accounts = {
-    #     "gpt-4o-mini": "JasonYan777",
-    #     "gpt-4o": "JasonYan777",
-    #     "gpt-5": "JasonYan777",
-    # }
-    # compare_response_models(
-    #     compare_models,
-    #     judge_model=judge_model,
-    #     model_hf_accounts=model_accounts,
-    #     generate_individual_plots=True,  # Set to False to only generate comparison plot
-    # )
-    # return
-
-    # Option 3: Analyze a single dimension dataset
-    # Uncomment the following to analyze a specific dimension:
-    analyze_single_dimension(
-        dimension_name="planning_horizon",  # or any dimension from config.DIMENSIONS
-        judge_model="gpt-4o",
-        hf_username="JasonYan777",
-        output_filename="accuracy_planning_horizon_gpt_4o.png",  # optional
+    compare_models = [
+        "gpt-4o-mini",
+        "gpt-4o",
+        "Meta-Llama-3.1-8B-Instruct-Turbo",
+        "claude-sonnet-4-5-20250929",
+    ]
+    model_accounts = {
+        "gpt-4o-mini": "JasonYan777",
+        "gpt-4o": "JasonYan777",
+        "Meta-Llama-3.1-8B-Instruct-Turbo": "JasonYan777",
+        "claude-sonnet-4-5-20250929": "JasonYan777",
+        # "gpt-5": "JasonYan777",
+    }
+    compare_response_models(
+        compare_models,
+        judge_model=judge_model,
+        model_hf_accounts=model_accounts,
+        generate_individual_plots=True,  # Set to False to only generate comparison plot
     )
     return
 
-    # =====================================
-
-    # Load and analyze single model with all dimensions
-    dataset_name = f"{hf_username}/PersonaSignal-All-Perceivability-{response_model}"
-    df = load_perceivability_data(
-        dataset_name=dataset_name,
-        response_model=response_model,
-        judge_model=judge_model,
-        hf_username=hf_username,
-    )
-
-    overall, dims = plot_accuracy(df)
-    print_stats(overall, dims, df)
+    # Option 3: Analyze a single dimension dataset
+    # Uncomment the following to analyze a specific dimension:
+    # analyze_single_dimension(
+    #     dimension_name="programming_expertise",  # or any dimension from config.DIMENSIONS
+    #     response_model=config.RESPONSE_GEN_MODEL,
+    #     hf_username=config.HF_USERNAME,
+    #     output_filename=f"accuracy_programming_expertise_{config.RESPONSE_GEN_MODEL.split('/')[-1]}.png",  # optional
+    # )
+    # return
 
 
 if __name__ == "__main__":

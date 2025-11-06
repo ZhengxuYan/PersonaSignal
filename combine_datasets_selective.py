@@ -93,6 +93,7 @@ def combine_specific_dimensions(dimensions: list[str], stages: list[str] = None)
                 "personalized_response": Value("string"),
                 "judge_choice": Value("string"),
                 "judge_rationale": Value("string"),
+                "correct_choice": Value("string"),
                 "reward": Value("int64"),
                 "question_gen_model": Value("string"),
                 "persona_gen_model": Value("string"),
@@ -128,7 +129,7 @@ def combine_specific_dimensions(dimensions: list[str], stages: list[str] = None)
                     )
                 else:  # perceivability
                     dataset_name = config.get_dataset_name_with_model(
-                        stage, config.JUDGE_MODEL
+                        stage, config.RESPONSE_GEN_MODEL
                     )
 
                 print(f"  Loading: {dataset_name}")
@@ -239,11 +240,11 @@ def main():
         # Add model suffix to output name
         # For perceivability, use response model since we compare different response models
         if stage == "questions":
-            model_suffix = config.QUESTION_GEN_MODEL
+            model_suffix = config.QUESTION_GEN_MODEL.split("/")[-1]
         elif stage == "responses":
-            model_suffix = config.RESPONSE_GEN_MODEL
+            model_suffix = config.RESPONSE_GEN_MODEL.split("/")[-1]
         else:  # perceivability
-            model_suffix = config.RESPONSE_GEN_MODEL
+            model_suffix = config.RESPONSE_GEN_MODEL.split("/")[-1]
 
         output_name = f"{config.HF_USERNAME}/PersonaSignal-{suffix}-{stage.title()}-{model_suffix}"
         print(f"Pushing: {output_name}")

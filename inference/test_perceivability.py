@@ -1,4 +1,5 @@
 import sys
+import random
 from pathlib import Path
 from typing import Dict
 
@@ -46,18 +47,38 @@ class PerceivabilityTestGenerator(curator.LLM):
     def prompt(self, input: dict) -> str:
         ground_truth_persona = input["ground_truth_persona"]
         distractor_personas = input["distractor_personas"]
-        # print(distractor_personas)
+
+        # Combine all personas and shuffle to avoid ordering bias
+        all_personas = distractor_personas + [ground_truth_persona]
+
+        # Create a shuffled list with indices to track ground truth position
+        persona_indices = list(range(len(all_personas)))
+        random.shuffle(persona_indices)
+
+        # Find which position the ground truth ended up in
+        ground_truth_original_index = len(
+            distractor_personas
+        )  # Last position before shuffle
+        ground_truth_position = persona_indices.index(ground_truth_original_index)
+
+        # Map position to letter (A, B, C, ...)
+        correct_choice_letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[ground_truth_position]
+
+        # Store the correct choice in input for later use in parse()
+        input["correct_choice"] = correct_choice_letter
+
+        # Build shuffled personas list
+        shuffled_personas = [all_personas[i] for i in persona_indices]
         personas = "\n".join(
             [
                 f"{letter}: {persona}"
                 for letter, persona in zip(
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-                    distractor_personas + [ground_truth_persona],
+                    shuffled_personas,
                 )
             ]
         )
-        # print(personas)
-        # raise Exception("Stop here")
+
         return TEST_PERCEIVABILITY_PROMPT_TEMPLATE.format(
             num_personas=input["num_distractors"] + 1,
             response=input["personalized_response"],
@@ -67,12 +88,16 @@ class PerceivabilityTestGenerator(curator.LLM):
     def parse(self, input: dict, response: PerceivabilityTestResult) -> Dict:
         choice = response.choice
         assert choice in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        reward = 1 if choice == "F" else 0
+
+        # Get the correct choice that was stored during prompt generation
+        correct_choice = input["correct_choice"]
+        reward = 1 if choice == correct_choice else 0
+
         return {
             **input,
             "judge_choice": response.choice,
             "judge_rationale": response.rationale,
-            # "persona_leaked": response.leakage_detection,
+            "correct_choice": correct_choice,
             "reward": reward,
         }
 
@@ -96,13 +121,21 @@ if __name__ == "__main__":
     dataset = load_dataset(input_dataset_name, split="train")
 
     # Run perceivability test
-    print(f"Running perceivability test using judge model {JUDGE_MODEL}...")
+    backend_info = f" with backend {BACKEND}" if BACKEND else ""
+    print(
+        f"Running perceivability test using judge model {JUDGE_MODEL}{backend_info}..."
+    )
     print(f"Evaluating responses from: {RESPONSE_GEN_MODEL}")
 
-    generator_kwargs = {"model_name": JUDGE_MODEL, "backend": BACKEND}
+    generator_kwargs = {"model_name": JUDGE_MODEL}
+    if BACKEND is not None:
+        generator_kwargs["backend"] = BACKEND
     if BACKEND_PARAMS is not None:
         generator_kwargs["backend_params"] = BACKEND_PARAMS
-    perceivability_test_generator = PerceivabilityTestGenerator(**generator_kwargs)
+
+    perceivability_test_generator = PerceivabilityTestGenerator(
+        **generator_kwargs,
+    )
     dataset_with_perceivability_test = perceivability_test_generator(dataset)
 
     # Push to HuggingFace Hub (keyed by response model, not judge model)

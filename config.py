@@ -69,6 +69,56 @@ DIMENSIONS = {
             "'Low-Agency': Assistant presents neutral information without opinions ('Here are three options: A, B, C with the following details...')."
         ),
     },
+    "communication_formality": {
+        "name": "communication_formality",
+        "values": ["Casual", "Professional", "Formal"],
+        "description": (
+            "Controls the tone and register of communication. "
+            "Casual users prefer conversational language with contractions and friendly expressions. "
+            "Professional users expect polished, business-appropriate language without being stiff. "
+            "Formal users require precise, grammatically rigorous language with complete sentences and professional terminology."
+        ),
+    },
+    "exploration_tendency": {
+        "name": "exploration_tendency",
+        "values": ["Conservative", "Pragmatic", "Exploratory"],
+        "description": (
+            "Reflects the user's openness to novel versus proven approaches. "
+            "Conservative users prefer well-established methods with track records and minimal risk. "
+            "Pragmatic users balance reliability with selective innovation, open to new ideas with reasonable validation. "
+            "Exploratory users embrace novelty, experimentation, and cutting-edge approaches even with uncertainty."
+        ),
+    },
+    "social_scope": {
+        "name": "social_scope",
+        "values": ["Individual", "Relational", "Collective"],
+        "description": (
+            "Determines whose interests and impacts the assistant should consider in framing advice. "
+            "Individual users optimize purely for personal goals, efficiency, and self-interest. "
+            "Relational users consider immediate social circle—how decisions affect family, friends, or close colleagues. "
+            "Collective users frame problems in terms of community welfare, organizational impact, or broader societal consequences."
+        ),
+    },
+    "learning_goal": {
+        "name": "learning_goal",
+        "values": ["Solution-Focused", "Skill-Building"],
+        "description": (
+            "Distinguishes between solving the immediate problem versus building lasting capability. "
+            "Solution-Focused users want the fastest path to completion—direct answers, ready-to-use code, or concrete steps. "
+            "Skill-Building users prefer brief explanations of underlying principles alongside the solution, "
+            "highlighting key patterns that transfer to similar problems."
+        ),
+    },
+    "feedback_style": {
+        "name": "feedback_style",
+        "values": ["Directive", "Guided", "Socratic"],
+        "description": (
+            "Controls how the assistant delivers corrections, explanations, and learning feedback. "
+            "Directive users prefer clear, explicit instruction—'Here's what's wrong and here's the fix.' "
+            "Guided users want structured hints and reasoning—'Consider this aspect... What if you tried...?' "
+            "Socratic users benefit from questions that prompt self-discovery—'Why might this approach fail? What pattern do you notice?'"
+        ),
+    },
 }
 
 # Active dimension configuration
@@ -78,25 +128,27 @@ DIMENSION_NAME = os.environ.get("PERSONA_DIMENSION", "agency_expectation")
 # Model configuration
 QUESTION_GEN_MODEL = "gpt-5"
 PERSONA_GEN_MODEL = "gpt-4o-mini"
-RESPONSE_GEN_MODEL = "together_ai/meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
-JUDGE_MODEL = "gpt-4o"
+RESPONSE_GEN_MODEL = "Meta-Llama-3.1-8B-Instruct-Turbo"
+JUDGE_MODEL = "gpt-5-mini"
 
 # Backend configuration
 # Can be overridden by BACKEND environment variable
 # Supported backends: "litellm", "openai", "anthropic", etc.
-BACKEND = os.environ.get("BACKEND", "litellm")
+# Set to None to use the default backend
+# BACKEND = os.environ.get("BACKEND", "litellm")
+BACKEND = None  # Uncomment to use default backend
 
 # Backend parameters (e.g., rate limits)
 # Set to None to use default backend settings
-BACKEND_PARAMS = {
-    "max_requests_per_minute": 2_000,  # 2K requests/minute
-    "max_tokens_per_minute": 4_000_000,  # 4M tokens/minute
-}
-# BACKEND_PARAMS = None  # Uncomment to disable custom backend params
+# BACKEND_PARAMS = {
+#     "max_requests_per_minute": 2_000,  # 2K requests/minute
+#     "max_tokens_per_minute": 4_000_000,  # 4M tokens/minute
+# }
+BACKEND_PARAMS = None  # Uncomment to disable custom backend params
 
 # Data generation parameters
 SEED = 42
-NUM_QUESTIONS = 30
+NUM_QUESTIONS = 50
 NUM_DISTRACTORS = 5
 
 # Dataset mode: append to existing dataset or overwrite

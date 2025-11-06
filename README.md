@@ -29,15 +29,49 @@ Edit `config.py` to select a dimension:
 DIMENSION_NAME = "programming_expertise"  # Change this to switch dimensions
 ```
 
-Available dimensions:
+Available dimensions (see `config.py` for full details):
 
 - `programming_expertise` - Novice, Intermediate, Advanced
 - `planning_horizon` - Spontaneous, Balanced, Strategic
 - `locale_and_time_zone` - Geographic and cultural contexts
 - `verification_orientation` - Trusting, Skeptical, Empirical
 - `agency_expectation` - High-Agency, Shared-Agency, Low-Agency
+- `communication_formality` - Formal, Neutral, Casual
+- `exploration_tendency` - Conservative, Moderate, Exploratory
+- `social_scope` - Individual-Focused, Balanced, Community-Oriented
+- `learning_goal` - Mastery, Practical Application, Theoretical Understanding
+- `feedback_style` - Direct, Balanced, Gentle
 
 ### 3. Run Pipeline
+
+#### Option A: Run Complete Pipeline (Recommended)
+
+Run all stages for multiple dimensions at once:
+
+```bash
+# Run all stages for specific dimensions
+python run_all_dimensions.py -d programming_expertise planning_horizon
+
+# Run specific stages only
+python run_all_dimensions.py -d programming_expertise -s datagen collect_response
+
+# Skip certain stages
+python run_all_dimensions.py -d programming_expertise --skip-combine --skip-analysis
+
+# Run all dimensions (uses all dimensions from config.py)
+python run_all_dimensions.py
+```
+
+Available stages:
+- `datagen` - Generate questions and personas
+- `collect_response` - Generate personalized responses
+- `test_perceivability` - Run judge evaluation
+- Dataset combination (automatic unless `--skip-combine`)
+- Analysis (automatic unless `--skip-analysis`)
+
+#### Option B: Run Individual Scripts
+
+Run each stage manually for fine-grained control:
 
 ```bash
 # Step 1: Generate questions and personas
@@ -49,7 +83,10 @@ python inference/collect_response.py
 # Step 3: Test perceivability with judge
 python inference/test_perceivability.py
 
-# Step 4: Analyze results
+# Step 4: Combine datasets (optional)
+python combine_datasets_selective.py
+
+# Step 5: Analyze results
 python analyze_perceivability.py
 ```
 
@@ -88,23 +125,56 @@ The pipeline consists of 4 stages:
 
 **Output**: `accuracy.png`
 
-## Combining Datasets
+## Common Usage Patterns
 
-To combine results across multiple dimensions:
+### Generate Full Dataset for Multiple Dimensions
 
-```python
-# Edit combine_datasets_selective.py
-dimensions_to_combine = list(config.DIMENSIONS.keys())  # All dimensions
+```bash
+# Generate everything for specific dimensions
+python run_all_dimensions.py -d programming_expertise planning_horizon locale_and_time_zone
 
-# Run
+# Generate for all dimensions in config
+python run_all_dimensions.py
+```
+
+### Re-run Specific Stages
+
+```bash
+# Re-generate responses with a different model (update RESPONSE_GEN_MODEL in config.py first)
+python run_all_dimensions.py -d programming_expertise -s collect_response test_perceivability
+
+# Re-run just the judge evaluation
+python run_all_dimensions.py -d programming_expertise -s test_perceivability
+```
+
+### Compare Multiple Models
+
+```bash
+# 1. Generate responses with first model
+# (Set RESPONSE_GEN_MODEL = "gpt-4o-mini" in config.py)
+python run_all_dimensions.py -d programming_expertise
+
+# 2. Generate responses with second model
+# (Set RESPONSE_GEN_MODEL = "gpt-4o" in config.py)
+python run_all_dimensions.py -d programming_expertise -s collect_response test_perceivability
+
+# 3. Compare results
+# (Edit analyze_perceivability.py to compare both models)
+python analyze_perceivability.py
+```
+
+### Combining Datasets
+
+The `run_all_dimensions.py` script automatically combines datasets unless you use `--skip-combine`. To manually combine:
+
+```bash
 python combine_datasets_selective.py
 ```
 
 This creates:
-
-- `PersonaSignal-All-Questions` - Combined question/persona dataset
-- `PersonaSignal-All-Responses` - Combined personalized responses
-- `PersonaSignal-All-Perceivability` - Combined perceivability results
+- `PersonaSignal-All-Questions-{model}` - Combined question/persona dataset
+- `PersonaSignal-All-Responses-{model}` - Combined personalized responses
+- `PersonaSignal-All-Perceivability-{model}` - Combined perceivability results
 
 ## Configuration
 
@@ -158,12 +228,32 @@ Each dataset entry contains:
 - `personalized_response` - Generated response (stages 2+)
 - `judge_choice`, `judge_rationale`, `reward` - Judge results (stage 3)
 
-## Files
+## Scripts Reference
+
+### Main Pipeline Scripts
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `run_all_dimensions.py` | Orchestrates entire pipeline for multiple dimensions | `python run_all_dimensions.py -d dimension1 dimension2` |
+| `datagen/datagen.py` | Generate questions and personas for one dimension | `python datagen/datagen.py` |
+| `inference/collect_response.py` | Generate personalized responses | `python inference/collect_response.py` |
+| `inference/test_perceivability.py` | Run judge evaluation | `python inference/test_perceivability.py` |
+| `combine_datasets_selective.py` | Combine datasets across dimensions | `python combine_datasets_selective.py` |
+| `analyze_perceivability.py` | Generate accuracy plots and statistics | `python analyze_perceivability.py` |
+
+### Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `config.py` | Central configuration for models, dimensions, HuggingFace username |
+| `.env` | API keys and tokens (create this yourself) |
+| `requirements.txt` | Python dependencies |
+
+### Project Structure
 
 ```
 datagen/
   ├── datagen.py          # Question & persona generation
-  ├── utils.py            # LLM wrappers
   └── ...
 
 inference/
@@ -171,7 +261,8 @@ inference/
   └── test_perceivability.py  # Judge model evaluation
 
 config.py                  # Central configuration
-analyze_perceivability.py  # Results analysis
+run_all_dimensions.py      # Main pipeline orchestrator
+analyze_perceivability.py  # Results analysis and visualization
 combine_datasets_selective.py  # Combine multiple dimensions
 ```
 

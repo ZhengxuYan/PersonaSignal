@@ -72,12 +72,20 @@ if __name__ == "__main__":
     dataset = load_dataset(input_dataset_name, split="train")
 
     # Generate personalized responses
+    backend_info = f" with backend {BACKEND}" if BACKEND else ""
     print(
-        f"Generating personalized responses using {RESPONSE_GEN_MODEL} with backend {BACKEND}..."
+        f"Generating personalized responses using {RESPONSE_GEN_MODEL}{backend_info}..."
     )
-    generator_kwargs = {"model_name": RESPONSE_GEN_MODEL, "backend": BACKEND}
+
+    generator_kwargs = {
+        "model_name": RESPONSE_GEN_MODEL,
+        "generation_params": {"max_tokens": 8192},
+    }
+    if BACKEND is not None:
+        generator_kwargs["backend"] = BACKEND
     if BACKEND_PARAMS is not None:
         generator_kwargs["backend_params"] = BACKEND_PARAMS
+
     personalized_response_generator = PersonalizedResponseGenerator(**generator_kwargs)
     dataset_with_personalized_response = personalized_response_generator(dataset)
 
