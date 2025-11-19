@@ -206,8 +206,8 @@ def plot_comparison(
     n_categories = len(categories)
     n_models = len(models)
 
-    # Create figure
-    fig, ax = plt.subplots(figsize=(14, 8))
+    # Create figure with extra height for legend and labels
+    fig, ax = plt.subplots(figsize=(16, 10))
 
     # Define colors for different models
     color_palette = ["#2C3E50", "#E74C3C", "#27AE60", "#F39C12", "#9B59B6", "#1ABC9C"]
@@ -279,9 +279,9 @@ def plot_comparison(
     ax.yaxis.grid(True, linestyle="--", alpha=0.4, color="gray", zorder=0)
     ax.set_axisbelow(True)
 
-    # Set x-axis
+    # Set x-axis with better spacing
     ax.set_xticks(x)
-    ax.set_xticklabels(categories, rotation=45, ha="right")
+    ax.set_xticklabels(categories, rotation=45, ha="right", fontsize=12)
 
     # Add horizontal line at 100%
     ax.axhline(y=100, color="gray", linestyle="-", linewidth=1, alpha=0.3, zorder=1)
@@ -289,14 +289,17 @@ def plot_comparison(
     # Legend - position it below the plot to avoid overlapping with bars and x-labels
     ax.legend(
         loc="upper center",
-        bbox_to_anchor=(0.5, -0.35),  # Move further down to clear rotated labels
-        ncol=min(n_models, 3),  # Use up to 3 columns for horizontal layout
+        bbox_to_anchor=(
+            0.5,
+            -0.55,
+        ),  # Move even further down to clear "Dimension" label
+        ncol=min(n_models, 4),  # Use up to 4 columns for horizontal layout
         frameon=True,
         fancybox=True,
         shadow=True,
-        fontsize=12,
+        fontsize=11,
         title="Response Model",
-        title_fontsize=13,
+        title_fontsize=12,
     )
 
     # Remove top and right spines
@@ -306,9 +309,9 @@ def plot_comparison(
     ax.spines["bottom"].set_linewidth(1.2)
 
     # Use tight_layout with extra padding, then save with bbox_inches='tight' to include legend
-    plt.tight_layout()
+    plt.tight_layout(pad=2.0)
     plt.savefig(
-        output_filename, dpi=300, bbox_inches="tight", facecolor="white", pad_inches=0.3
+        output_filename, dpi=300, bbox_inches="tight", facecolor="white", pad_inches=0.5
     )
     print(f"\n✓ Saved comparison: {output_filename}")
     plt.close()

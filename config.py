@@ -128,8 +128,8 @@ DIMENSION_NAME = os.environ.get("PERSONA_DIMENSION", "agency_expectation")
 # Model configuration
 QUESTION_GEN_MODEL = "gpt-5"
 PERSONA_GEN_MODEL = "gpt-4o-mini"
-RESPONSE_GEN_MODEL = "Meta-Llama-3.1-8B-Instruct-Turbo"
-JUDGE_MODEL = "gpt-5-mini"
+RESPONSE_GEN_MODEL = "gpt-4o"
+JUDGE_MODEL = "gpt-4o-mini"
 
 # Backend configuration
 # Can be overridden by BACKEND environment variable
