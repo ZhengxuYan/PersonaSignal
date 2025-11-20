@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PersonaSignal Verification (Task 2)</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        {% if not logged_in %}
+        <div id="login-view" class="card">
+            <h1>Welcome Annotator (Task 2)</h1>
+            <p>Please enter your username to start verification.</p>
+            <input type="text" id="username-input" placeholder="Username (e.g., Annotator1)">
+            <button id="login-btn" class="primary-btn">Start Verifying</button>
+        </div>
+        {% else %}
+        <div id="annotation-view">
+            <header>
+                <div class="user-info">Logged in as: <span id="current-user">{{ username }}</span></div>
+                <div class="nav-controls">
+                    <button id="prev-btn" class="secondary-btn">Prev</button>
+                    <span id="question-counter">Question <input type="number" id="index-input" min="1" class="index-input"> / <span id="total-count"></span></span>
+                    <button id="next-btn" class="secondary-btn">Next</button>
+                </div>
+                <div class="header-actions">
+                    <button id="clear-btn" class="secondary-btn hidden">Clear Response</button>
+                    <button id="logout-btn" class="secondary-btn">Logout</button>
+                </div>
+            </header>
+            
+            <div id="loading" class="hidden">Loading question...</div>
+            <div id="finished" class="hidden card">
+                <h2>All Done!</h2>
+                <p>You have verified all available questions. Thank you!</p>
+            </div>
+
+            <div id="question-container" class="hidden">
+                <div class="card context-card">
+                    <div class="badge" id="dimension-name">Dimension</div>
+                    
+                    <h3>Target Persona</h3>
+                    <p id="ground-truth-persona" class="question-text"></p>
+                    
+                    <h3>Question</h3>
+                    <p id="question-text" class="question-text"></p>
+                    
+                    <h3>Generated Response</h3>
+                    <p id="personalized-response" class="response-text"></p>
+                </div>
+
+                <div class="card response-card" id="verification-card">
+                    <h3>Is this response personalized?</h3>
+                    <p class="instruction">Does the generated response align with the target persona?</p>
+                    
+                    <div class="action-buttons">
+                        <button id="yes-btn" class="primary-btn">Yes (True)</button>
+                        <button id="no-btn" class="secondary-btn">No (False)</button>
+                    </div>
+                    <div id="status-message" class="hidden"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

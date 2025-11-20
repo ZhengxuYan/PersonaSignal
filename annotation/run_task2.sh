@@ -1,3 +1,3 @@
 #!/bin/bash
-cd annotation_tool
+cd annotation/task2_tool
 python3 app.py
