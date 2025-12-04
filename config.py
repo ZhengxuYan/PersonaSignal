@@ -128,23 +128,23 @@ DIMENSION_NAME = os.environ.get("PERSONA_DIMENSION", "agency_expectation")
 # Model configuration
 QUESTION_GEN_MODEL = "gpt-5"
 PERSONA_GEN_MODEL = "gpt-4o-mini"
-RESPONSE_GEN_MODEL = "gpt-4o"
-JUDGE_MODEL = "gpt-4o-mini"
+RESPONSE_GEN_MODEL = "DPO-Tinker"
+JUDGE_MODEL = "gpt-5-mini"
 
 # Backend configuration
 # Can be overridden by BACKEND environment variable
 # Supported backends: "litellm", "openai", "anthropic", etc.
 # Set to None to use the default backend
-# BACKEND = os.environ.get("BACKEND", "litellm")
-BACKEND = None  # Uncomment to use default backend
+BACKEND = os.environ.get("BACKEND", "litellm")
+# BACKEND = None  # Uncomment to use default backend
 
 # Backend parameters (e.g., rate limits)
 # Set to None to use default backend settings
-# BACKEND_PARAMS = {
-#     "max_requests_per_minute": 2_000,  # 2K requests/minute
-#     "max_tokens_per_minute": 4_000_000,  # 4M tokens/minute
-# }
-BACKEND_PARAMS = None  # Uncomment to disable custom backend params
+BACKEND_PARAMS = {
+    "max_requests_per_minute": 2_000,  # 2K requests/minute
+    "max_tokens_per_minute": 4_000_000,  # 4M tokens/minute
+}
+# BACKEND_PARAMS = None  # Uncomment to disable custom backend params
 
 # Data generation parameters
 SEED = 42

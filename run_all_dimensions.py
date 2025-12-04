@@ -21,9 +21,26 @@ def run_stage(stage_name: str, env=None):
     print(f"\n{'='*70}")
     print(f"Running {stage_name}")
     print(f"{'='*70}\n")
+    
+    script_name = f"inference/{stage_name}.py"
+    
+    # Check if we should use the Tinker inference script
+    if stage_name == "collect_response" and config.RESPONSE_GEN_MODEL.startswith("DPO-Tinker"):
+        print("Detected Tinker model, using inference/collect_response_tinker.py")
+        script_name = "inference/collect_response_tinker.py"
+        
+        # Ensure PYTHONPATH includes tinker-cookbook
+        if env is None:
+            env = os.environ.copy()
+        
+        tinker_path = str(Path(__file__).parent / ".venv" / "src" / "tinker-cookbook")
+        if "PYTHONPATH" in env:
+            env["PYTHONPATH"] += f":{tinker_path}"
+        else:
+            env["PYTHONPATH"] = tinker_path
 
     result = subprocess.run(
-        ["python", f"inference/{stage_name}.py"], capture_output=False, env=env
+        ["python", script_name], capture_output=False, env=env
     )
     return result.returncode == 0
 
