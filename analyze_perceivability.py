@@ -517,13 +517,14 @@ def main():
         "gpt-4o",
         "Meta-Llama-3.1-8B-Instruct-Turbo",
         "claude-sonnet-4-5-20250929",
+        "DPO-Tinker",
     ]
     model_accounts = {
         "gpt-4o-mini": "JasonYan777",
         "gpt-4o": "JasonYan777",
         "Meta-Llama-3.1-8B-Instruct-Turbo": "JasonYan777",
         "claude-sonnet-4-5-20250929": "JasonYan777",
-        # "gpt-5": "JasonYan777",
+        "DPO-Tinker": "JasonYan777",
     }
     compare_response_models(
         compare_models,

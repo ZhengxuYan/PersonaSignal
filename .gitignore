@@ -27,6 +27,8 @@ Thumbs.db
 # Environment variables
 .env
 
+.venv/
+
 # Output files
 *.png
 *.pdf
