@@ -40,7 +40,7 @@ def run_stage(stage_name: str, env=None):
             env["PYTHONPATH"] = tinker_path
 
     result = subprocess.run(
-        ["python", script_name], capture_output=False, env=env
+        [sys.executable, script_name], capture_output=False, env=env
     )
     return result.returncode == 0
 
@@ -62,7 +62,7 @@ def run_pipeline(dimensions=None, stages=None, skip_combine=False, skip_analysis
 
     # Default to all stages
     if stages is None:
-        stages = ["datagen", "collect_response", "test_perceivability"]
+        stages = ["datagen", "collect_response", "test_perceivability", "leakage_check"]
 
     # Validate dimensions
     invalid_dims = [d for d in dimensions if d not in config.DIMENSIONS]
@@ -72,7 +72,7 @@ def run_pipeline(dimensions=None, stages=None, skip_combine=False, skip_analysis
         return
 
     # Validate stages
-    valid_stages = ["datagen", "collect_response", "test_perceivability"]
+    valid_stages = ["datagen", "collect_response", "test_perceivability", "leakage_check"]
     invalid_stages = [s for s in stages if s not in valid_stages]
     if invalid_stages:
         print(f"Error: Invalid stages: {invalid_stages}")
@@ -101,7 +101,7 @@ def run_pipeline(dimensions=None, stages=None, skip_combine=False, skip_analysis
         # Stage 1: Generate questions and personas
         if "datagen" in stages:
             result = subprocess.run(
-                ["python", "datagen/datagen.py"], capture_output=False, env=env
+                [sys.executable, "datagen/datagen.py"], capture_output=False, env=env
             )
             success1 = result.returncode == 0
             dim_results["datagen"] = success1
@@ -133,6 +133,17 @@ def run_pipeline(dimensions=None, stages=None, skip_combine=False, skip_analysis
                 continue
         else:
             dim_results["test_perceivability"] = "skipped"
+
+        # Stage 4: Leakage Check
+        if "leakage_check" in stages:
+            success4 = run_stage("leakage_check", env=env)
+            dim_results["leakage_check"] = success4
+            if not success4:
+                print(f"\n✗ Failed at leakage_check stage for {dimension}")
+                results[dimension] = dim_results
+                continue
+        else:
+            dim_results["leakage_check"] = "skipped"
 
         print(f"\n✓ Successfully completed requested stages for {dimension}")
         results[dimension] = dim_results
@@ -167,7 +178,7 @@ def run_pipeline(dimensions=None, stages=None, skip_combine=False, skip_analysis
 
         try:
             print("Running combine_datasets_selective.py...")
-            subprocess.run(["python", "combine_datasets_selective.py"], check=False)
+            subprocess.run([sys.executable, "combine_datasets_selective.py"], check=False)
             print("\n✓ Combined datasets successfully")
         except Exception as e:
             print(f"Warning: Combining datasets failed: {e}")
@@ -184,7 +195,7 @@ def run_pipeline(dimensions=None, stages=None, skip_combine=False, skip_analysis
 
         try:
             print("Running analyze_perceivability.py...")
-            subprocess.run(["python", "analyze_perceivability.py"], check=False)
+            subprocess.run([sys.executable, "analyze_perceivability.py"], check=False)
             print("\n✓ Analysis completed")
         except Exception as e:
             print(f"Warning: Analysis failed: {e}")
@@ -231,7 +242,7 @@ Examples:
         "-s",
         "--stages",
         nargs="+",
-        choices=["datagen", "collect_response", "test_perceivability"],
+        choices=["datagen", "collect_response", "test_perceivability", "leakage_check"],
         help="Specific stages to run. If not specified, runs all stages.",
         metavar="STAGE",
     )

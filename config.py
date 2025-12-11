@@ -126,7 +126,7 @@ DIMENSIONS = {
 DIMENSION_NAME = os.environ.get("PERSONA_DIMENSION", "agency_expectation")
 
 # Model configuration
-QUESTION_GEN_MODEL = "gpt-5"
+QUESTION_GEN_MODEL = "DPO"
 PERSONA_GEN_MODEL = "gpt-4o-mini"
 RESPONSE_GEN_MODEL = "DPO-Tinker"
 JUDGE_MODEL = "gpt-5-mini"
@@ -186,6 +186,7 @@ def get_dataset_name(stage: str) -> str:
         "questions": f"{HF_USERNAME}/PersonaSignal-PersonaQuestions-{dimension_formatted}",
         "responses": f"{HF_USERNAME}/PersonaSignal-PersonalizedResponse-{dimension_formatted}",
         "perceivability": f"{HF_USERNAME}/PersonaSignal-PerceivabilityTest-{dimension_formatted}",
+        "leakage_check": f"{HF_USERNAME}/PersonaSignal-LeakageCheck-{dimension_formatted}",
     }
 
     if stage not in stage_names:
@@ -218,6 +219,9 @@ def get_dataset_name_with_model(stage: str, model_name: str) -> str:
     elif stage == "perceivability":
         # Perceivability datasets are keyed by RESPONSE_GEN_MODEL (the model being evaluated)
         # not JUDGE_MODEL (the evaluation tool)
+        return f"{base_name}-{RESPONSE_GEN_MODEL.split('/')[-1]}"
+    elif stage == "leakage_check":
+        # Leakage check datasets are also keyed by RESPONSE_GEN_MODEL
         return f"{base_name}-{RESPONSE_GEN_MODEL.split('/')[-1]}"
 
     return base_name

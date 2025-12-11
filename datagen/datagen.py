@@ -362,7 +362,7 @@ if __name__ == "__main__":
     print(f"Generated personas for {len(dataset_with_personas)} questions.")
 
     # Push to HuggingFace Hub
-    dataset_name = config.get_dataset_name_with_model("questions", model_name)
+    dataset_name = f"{config.HF_USERNAME}/PersonaSignal-PersonaQuestions-{DIMENSION_NAME.replace('_', '-').title()}-DPO"
 
     if APPEND_MODE:
         print(f"\nAppend mode enabled. Checking for existing dataset: {dataset_name}")

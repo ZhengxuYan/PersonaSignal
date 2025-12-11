@@ -53,9 +53,7 @@ def load_perceivability_data(
         response_model = response_model or config.RESPONSE_GEN_MODEL
         judge_model = judge_model or config.JUDGE_MODEL
         hf_username = hf_username or config.HF_USERNAME
-        dataset_name = (
-            f"{hf_username}/PersonaSignal-All-Perceivability-{response_model}"
-        )
+        dataset_name = f"{hf_username}/PersonaSignal-All-Leakage_check-{response_model}"
 
     print(f"Loading: {dataset_name}")
     dataset = load_dataset_hf(dataset_name, split="train")
@@ -80,10 +78,10 @@ def load_perceivability_data(
 
 def plot_accuracy(df: pd.DataFrame, output_filename: str = "accuracy.png"):
     # Calculate accuracy by dimension
-    dim_acc = df.groupby("dimension_name")["reward"].mean() * 100
+    dim_acc = df.groupby("dimension_name")["final_reward"].mean() * 100
 
     # Calculate overall accuracy
-    overall_acc = df["reward"].mean() * 100
+    overall_acc = df["final_reward"].mean() * 100
 
     # Prepare data for plotting with formatted labels
     dim_labels = [dim.replace("_", " ").title() for dim in dim_acc.index]
@@ -328,7 +326,7 @@ def print_stats(overall_acc, dim_acc, df=None):
         judge_models = df["judge_model"].unique()
         if len(judge_models) > 1:
             print("\nAccuracy by Judge Model:")
-            judge_acc = df.groupby("judge_model")["reward"].mean() * 100
+            judge_acc = df.groupby("judge_model")["final_reward"].mean() * 100
             for model, acc in judge_acc.items():
                 count = len(df[df["judge_model"] == model])
                 print(f"  {model}: {acc:.1f}% ({count} rows)")
@@ -340,7 +338,7 @@ def print_stats(overall_acc, dim_acc, df=None):
         )
         if len(response_models) > 1:
             print("\nAccuracy by Response Generation Model:")
-            resp_acc = df.groupby("response_gen_model")["reward"].mean() * 100
+            resp_acc = df.groupby("response_gen_model")["final_reward"].mean() * 100
             for model, acc in resp_acc.items():
                 count = len(df[df["response_gen_model"] == model])
                 print(f"  {model}: {acc:.1f}% ({count} rows)")
@@ -381,9 +379,7 @@ def compare_response_models(
 
         # Get HF username for this model
         hf_username = model_hf_accounts.get(response_model, config.HF_USERNAME)
-        dataset_name = (
-            f"{hf_username}/PersonaSignal-All-Perceivability-{response_model}"
-        )
+        dataset_name = f"{hf_username}/PersonaSignal-All-Leakage_check-{response_model}"
 
         try:
             df = load_perceivability_data(
@@ -401,8 +397,8 @@ def compare_response_models(
                 print_stats(overall, dims, df)
             else:
                 # Just calculate stats without plotting
-                overall = df["reward"].mean() * 100
-                dims = df.groupby("dimension_name")["reward"].mean() * 100
+                overall = df["final_reward"].mean() * 100
+                dims = df.groupby("dimension_name")["final_reward"].mean() * 100
                 print_stats(overall, dims, df)
 
             results[response_model] = {"overall": overall, "dimensions": dims}
@@ -464,7 +460,7 @@ def analyze_single_dimension(
     dimension_formatted = dimension_name.replace("_", "-").title()
 
     # Construct dataset name
-    dataset_name = f"{hf_username}/PersonaSignal-PerceivabilityTest-{dimension_formatted}-{response_model}"
+    dataset_name = f"{hf_username}/PersonaSignal-LeakageCheck-{dimension_formatted}-{response_model}"
 
     print(f"\n{'='*60}")
     print(f"Analyzing Single Dimension: {dimension_name}")
@@ -517,14 +513,14 @@ def main():
         "gpt-4o",
         "Meta-Llama-3.1-8B-Instruct-Turbo",
         "claude-sonnet-4-5-20250929",
-        "DPO-Tinker",
+        # "DPO-Tinker",
     ]
     model_accounts = {
         "gpt-4o-mini": "JasonYan777",
         "gpt-4o": "JasonYan777",
         "Meta-Llama-3.1-8B-Instruct-Turbo": "JasonYan777",
         "claude-sonnet-4-5-20250929": "JasonYan777",
-        "DPO-Tinker": "JasonYan777",
+        # "DPO-Tinker": "JasonYan777",
     }
     compare_response_models(
         compare_models,

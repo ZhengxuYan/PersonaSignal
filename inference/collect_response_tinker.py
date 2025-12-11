@@ -20,7 +20,7 @@ import config
 load_dotenv()
 
 # Constants
-SAMPLER_PATH = "tinker://92a8798e-08ab-58b5-a8c4-238a9902ff17:train:0/sampler_weights/final"
+SAMPLER_PATH = "tinker://13841bd2-2189-5a5d-b8d2-a43ff7830fb5:train:0/sampler_weights/final"
 BASE_MODEL_NAME = "meta-llama/Llama-3.1-8B-Instruct"
 
 PERSONALIZED_RESPONSE_SYSTEMPROMPT_TEMPLATE = """

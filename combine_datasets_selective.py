@@ -101,6 +101,32 @@ def combine_specific_dimensions(dimensions: list[str], stages: list[str] = None)
                 "judge_model": Value("string"),
             }
         ),
+        "leakage_check": Features(
+            {
+                "dimension_name": Value("string"),
+                "dimension_values": Sequence(Value("string")),
+                "dimension_description": Value("string"),
+                "question": Value("string"),
+                "why_differ": Value("string"),
+                "how_subtle": Value("string"),
+                "sampled_value": Value("string"),
+                "num_distractors": Value("int64"),
+                "ground_truth_persona": Value("string"),
+                "distractor_personas": Sequence(Value("string")),
+                "personalized_response": Value("string"),
+                "judge_choice": Value("string"),
+                "judge_rationale": Value("string"),
+                "correct_choice": Value("string"),
+                "reward": Value("int64"),
+                "question_gen_model": Value("string"),
+                "persona_gen_model": Value("string"),
+                "response_gen_model": Value("string"),
+                "judge_model": Value("string"),
+                "leakage_detected": Value("bool"),
+                "leakage_rationale": Value("string"),
+                "final_reward": Value("int64"),
+            }
+        ),
     }
 
     results = {}
@@ -127,7 +153,7 @@ def combine_specific_dimensions(dimensions: list[str], stages: list[str] = None)
                     dataset_name = config.get_dataset_name_with_model(
                         stage, config.RESPONSE_GEN_MODEL
                     )
-                else:  # perceivability
+                else:  # perceivability or leakage_check
                     dataset_name = config.get_dataset_name_with_model(
                         stage, config.RESPONSE_GEN_MODEL
                     )
@@ -154,7 +180,20 @@ def combine_specific_dimensions(dimensions: list[str], stages: list[str] = None)
                     dataset = dataset.add_column(
                         "response_gen_model", [config.RESPONSE_GEN_MODEL] * len(dataset)
                     )
-                else:  # perceivability
+                elif stage == "perceivability":
+                    dataset = dataset.add_column(
+                        "question_gen_model", [config.QUESTION_GEN_MODEL] * len(dataset)
+                    )
+                    dataset = dataset.add_column(
+                        "persona_gen_model", [config.PERSONA_GEN_MODEL] * len(dataset)
+                    )
+                    dataset = dataset.add_column(
+                        "response_gen_model", [config.RESPONSE_GEN_MODEL] * len(dataset)
+                    )
+                    dataset = dataset.add_column(
+                        "judge_model", [config.JUDGE_MODEL] * len(dataset)
+                    )
+                elif stage == "leakage_check":
                     dataset = dataset.add_column(
                         "question_gen_model", [config.QUESTION_GEN_MODEL] * len(dataset)
                     )
@@ -206,7 +245,7 @@ def main():
     dimensions_to_combine = list(config.DIMENSIONS.keys())
 
     # Choose which stages to combine
-    stages_to_combine = ["questions", "responses", "perceivability"]
+    stages_to_combine = ["questions", "responses", "perceivability", "leakage_check"]
     # stages_to_combine = ["responses"]  # Or just specific stages
 
     # =====================================
@@ -260,7 +299,11 @@ def main():
             print(
                 f"  Models tracked: question={config.QUESTION_GEN_MODEL}, persona={config.PERSONA_GEN_MODEL}, response={config.RESPONSE_GEN_MODEL}"
             )
-        else:  # perceivability
+        elif stage == "perceivability":
+            print(
+                f"  Models tracked: question={config.QUESTION_GEN_MODEL}, persona={config.PERSONA_GEN_MODEL}, response={config.RESPONSE_GEN_MODEL}, judge={config.JUDGE_MODEL}"
+            )
+        else:  # leakage_check
             print(
                 f"  Models tracked: question={config.QUESTION_GEN_MODEL}, persona={config.PERSONA_GEN_MODEL}, response={config.RESPONSE_GEN_MODEL}, judge={config.JUDGE_MODEL}"
             )
